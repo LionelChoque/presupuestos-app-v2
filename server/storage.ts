@@ -12,9 +12,12 @@ import {
   budgets,
   budgetItems,
   contactInfo,
-  importLogs
+  importLogs,
+  users
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -38,7 +41,7 @@ export interface IStorage {
   getAllContacts(): Promise<(ContactInfo & { budgetId: string })[]>;
   getContact(budgetId: string): Promise<(ContactInfo & { budgetId: string }) | undefined>;
   createContact(budgetId: string, contact: Omit<InsertContactInfo, 'budgetId'>): Promise<ContactInfo & { budgetId: string }>;
-  updateContact(budgetId: string, contactData: Partial<Omit<InsertContactInfo, 'budgetId'>>): Promise<ContactInfo & { budgetId: string } | undefined>;
+  updateContact(budgetId: string, contactData: Partial<Omit<InsertContactInfo, 'budgetId'>>): Promise<(ContactInfo & { budgetId: string }) | undefined>;
   
   // Import operations
   importCsvData(csvData: string, options: { compareWithPrevious: boolean; autoFinalizeMissing: boolean }): Promise<{ added: number; updated: number; deleted: number; total: number }>;
@@ -46,116 +49,125 @@ export interface IStorage {
   createImportLog(log: Omit<InsertImportLog, 'id'>): Promise<ImportLog>;
 }
 
-// In-memory storage implementation
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private budgets: Map<string, Budget>;
-  private budgetItems: Map<number, BudgetItem>;
-  private contacts: Map<string, ContactInfo & { budgetId: string }>;
-  private importLogs: ImportLog[];
-  private userId: number;
-  private budgetItemId: number;
-  private importLogId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.budgets = new Map();
-    this.budgetItems = new Map();
-    this.contacts = new Map();
-    this.importLogs = [];
-    this.userId = 1;
-    this.budgetItemId = 1;
-    this.importLogId = 1;
-  }
-
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Budget operations
   async getAllBudgets(): Promise<Budget[]> {
-    return Array.from(this.budgets.values());
+    const dbBudgets = await db.select().from(budgets);
+    return dbBudgets as Budget[];
   }
 
   async getBudget(id: string): Promise<Budget | undefined> {
-    return this.budgets.get(id);
+    const [budget] = await db.select().from(budgets).where(eq(budgets.id, id));
+    return budget as Budget | undefined;
   }
 
   async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const budget: Budget = {
+    const valueWithId = {
       ...insertBudget,
-      id: insertBudget.id || Date.now().toString(), // Use provided ID or generate a new one
+      id: insertBudget.id || Date.now().toString()
     };
-    this.budgets.set(budget.id, budget);
-    return budget;
+    
+    const [budget] = await db
+      .insert(budgets)
+      .values(valueWithId)
+      .returning();
+    
+    return budget as Budget;
   }
 
   async updateBudget(id: string, budgetData: Partial<InsertBudget>): Promise<Budget | undefined> {
-    const existingBudget = this.budgets.get(id);
-    if (!existingBudget) return undefined;
-
-    const updatedBudget: Budget = { ...existingBudget, ...budgetData };
-    this.budgets.set(id, updatedBudget);
-    return updatedBudget;
+    const [updatedBudget] = await db
+      .update(budgets)
+      .set(budgetData as any)
+      .where(eq(budgets.id, id))
+      .returning();
+    
+    return updatedBudget as Budget | undefined;
   }
 
   async deleteBudget(id: string): Promise<boolean> {
-    return this.budgets.delete(id);
+    const [deletedBudget] = await db
+      .delete(budgets)
+      .where(eq(budgets.id, id))
+      .returning();
+    
+    return !!deletedBudget;
   }
 
   // Budget items operations
   async getBudgetItems(budgetId: string): Promise<BudgetItem[]> {
-    return Array.from(this.budgetItems.values())
-      .filter(item => item.budgetId === budgetId);
+    const items = await db
+      .select()
+      .from(budgetItems)
+      .where(eq(budgetItems.budgetId, budgetId));
+    
+    return items as BudgetItem[];
   }
 
   async createBudgetItem(insertItem: InsertBudgetItem): Promise<BudgetItem> {
-    const id = this.budgetItemId++;
-    const item: BudgetItem = { ...insertItem, id };
-    this.budgetItems.set(id, item);
-    return item;
+    const [item] = await db
+      .insert(budgetItems)
+      .values(insertItem as any)
+      .returning();
+    
+    return item as BudgetItem;
   }
 
   // Contact operations
   async getAllContacts(): Promise<(ContactInfo & { budgetId: string })[]> {
-    return Array.from(this.contacts.values());
+    const contacts = await db.select().from(contactInfo);
+    return contacts as (ContactInfo & { budgetId: string })[];
   }
 
   async getContact(budgetId: string): Promise<(ContactInfo & { budgetId: string }) | undefined> {
-    return this.contacts.get(budgetId);
+    const [contact] = await db
+      .select()
+      .from(contactInfo)
+      .where(eq(contactInfo.budgetId, budgetId));
+    
+    return contact as (ContactInfo & { budgetId: string }) | undefined;
   }
 
   async createContact(budgetId: string, contact: Omit<InsertContactInfo, 'budgetId'>): Promise<ContactInfo & { budgetId: string }> {
-    const newContact = {
-      id: Date.now(),
-      budgetId,
-      ...contact,
-    };
-    this.contacts.set(budgetId, newContact);
-    return newContact;
+    const [newContact] = await db
+      .insert(contactInfo)
+      .values({
+        ...contact,
+        budgetId
+      } as any)
+      .returning();
+    
+    return newContact as ContactInfo & { budgetId: string };
   }
 
   async updateContact(budgetId: string, contactData: Partial<Omit<InsertContactInfo, 'budgetId'>>): Promise<(ContactInfo & { budgetId: string }) | undefined> {
-    const existingContact = this.contacts.get(budgetId);
-    if (!existingContact) return undefined;
-
-    const updatedContact = { ...existingContact, ...contactData };
-    this.contacts.set(budgetId, updatedContact);
-    return updatedContact;
+    const [updatedContact] = await db
+      .update(contactInfo)
+      .set(contactData as any)
+      .where(eq(contactInfo.budgetId, budgetId))
+      .returning();
+    
+    return updatedContact as (ContactInfo & { budgetId: string }) | undefined;
   }
 
   // Import operations
@@ -163,7 +175,7 @@ export class MemStorage implements IStorage {
     try {
       // Parse CSV data into budgets
       const newBudgets = await convertCsvToBudgets(csvData);
-      const existingBudgets = Array.from(this.budgets.values());
+      const existingBudgets = await this.getAllBudgets();
       
       // Compare with existing budgets
       const compareResult = compareBudgets(existingBudgets, newBudgets, options);
@@ -171,7 +183,7 @@ export class MemStorage implements IStorage {
       // Process budgets to add or update
       for (const budget of newBudgets) {
         // Check if budget already exists
-        const existingBudget = this.budgets.get(budget.id);
+        const existingBudget = await this.getBudget(budget.id);
         
         if (existingBudget) {
           // Update existing budget, preserving user-entered data
@@ -189,10 +201,9 @@ export class MemStorage implements IStorage {
         // Process budget items
         if (budget.items && budget.items.length > 0) {
           // Clear existing items for this budget
-          this.budgetItems = new Map(
-            Array.from(this.budgetItems.entries())
-              .filter(([_, item]) => item.budgetId !== budget.id)
-          );
+          await db
+            .delete(budgetItems)
+            .where(eq(budgetItems.budgetId, budget.id));
           
           // Add new items
           for (const item of budget.items) {
@@ -215,7 +226,9 @@ export class MemStorage implements IStorage {
           if (!newBudgetIds.has(existingBudget.id) && !existingBudget.finalizado) {
             await this.updateBudget(existingBudget.id, {
               finalizado: true,
+              fechaFinalizado: new Date().toISOString().split('T')[0],
               estado: 'Vencido',
+              fechaEstado: new Date().toISOString().split('T')[0],
             });
           }
         }
@@ -229,20 +242,23 @@ export class MemStorage implements IStorage {
   }
 
   async getImportLogs(): Promise<ImportLog[]> {
-    return this.importLogs;
+    const logs = await db
+      .select()
+      .from(importLogs)
+      .orderBy(desc(importLogs.timestamp));
+    
+    return logs as ImportLog[];
   }
 
   async createImportLog(log: Omit<InsertImportLog, 'id'>): Promise<ImportLog> {
-    const id = this.importLogId++;
-    const importLog: ImportLog = {
-      id,
-      timestamp: new Date(),
-      ...log,
-    };
-    this.importLogs.push(importLog);
-    return importLog;
+    const [importLog] = await db
+      .insert(importLogs)
+      .values(log as any)
+      .returning();
+    
+    return importLog as ImportLog;
   }
 }
 
 // Initialize the storage
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
