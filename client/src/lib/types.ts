@@ -25,6 +25,8 @@ export interface Budget {
   estado?: 'Pendiente' | 'Aprobado' | 'Rechazado' | 'Vencido';
   notas?: string;
   finalizado?: boolean;
+  esLicitacion?: boolean;
+  contacto?: ContactInfo;
 }
 
 export interface ContactInfo {
@@ -57,6 +59,8 @@ export interface CsvBudgetRow {
   NetoItems_USD: string;
   Descuento: string;
   Validez: string;
+  Nombre_Contacto?: string;
+  Direccion?: string; // Usaremos este campo como email para contacto
 }
 
 export interface Stats {
