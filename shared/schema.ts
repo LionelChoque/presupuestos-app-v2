@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, jsonb, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,7 +13,7 @@ export const budgetItems = pgTable("budget_items", {
   budgetId: text("budget_id").notNull(),
   codigo: text("codigo"),
   descripcion: text("descripcion").notNull(),
-  precio: integer("precio").notNull(),
+  precio: decimal("precio", { precision: 15, scale: 2 }).notNull(),
   cantidad: integer("cantidad").default(1),
 });
 
@@ -25,7 +25,7 @@ export const budgets = pgTable("budgets", {
   moneda: text("moneda").default("Dólar EEUU"),
   descuento: integer("descuento").default(0),
   validez: integer("validez").default(0),
-  montoTotal: integer("monto_total").notNull(),
+  montoTotal: decimal("monto_total", { precision: 15, scale: 2 }).notNull(),
   diasTranscurridos: integer("dias_transcurridos").default(0),
   diasRestantes: integer("dias_restantes").default(0),
   tipoSeguimiento: text("tipo_seguimiento").notNull(),
