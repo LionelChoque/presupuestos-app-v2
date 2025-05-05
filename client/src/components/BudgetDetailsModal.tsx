@@ -103,8 +103,13 @@ export function BudgetDetailsModal({
             <TabsTrigger value="info">Información</TabsTrigger>
             <TabsTrigger value="contact">Contacto</TabsTrigger>
             <TabsTrigger value="actions">Acciones</TabsTrigger>
-            <TabsTrigger value="history">Historial</TabsTrigger>
             <TabsTrigger value="items">Productos</TabsTrigger>
+            <TabsTrigger 
+              value="history" 
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:text-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-700 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-700 data-[state=active]:to-indigo-800 data-[state=active]:text-white"
+            >
+              Seguimiento
+            </TabsTrigger>
           </TabsList>
           
           {/* Info Tab */}
@@ -444,16 +449,16 @@ export function BudgetDetailsModal({
             )}
           </TabsContent>
           
-          {/* History Tab */}
+          {/* Seguimiento Tab */}
           <TabsContent value="history" className="space-y-4">
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                <h4 className="text-sm font-medium text-gray-700">Historial de etapas</h4>
+            <div className="border border-indigo-200 rounded-lg overflow-hidden shadow-md">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-indigo-200 flex justify-between items-center">
+                <h4 className="text-sm font-medium text-indigo-800">Seguimiento de etapas</h4>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowStageForm(true)}
-                  className="flex items-center text-xs"
+                  className="flex items-center text-xs bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 border-none"
                   disabled={showStageForm || !onAdvanceBudgetStage}
                 >
                   <PlusCircle className="h-3.5 w-3.5 mr-1" />
@@ -518,31 +523,39 @@ export function BudgetDetailsModal({
               <div className="p-4">
                 {budget.historialEtapas && budget.historialEtapas.length > 0 ? (
                   <div className="relative">
-                    <div className="absolute left-4 top-0 h-full w-px bg-gray-200"></div>
-                    <ul className="space-y-6 ml-4">
+                    <div className="absolute left-4 top-0 h-full w-1 bg-gradient-to-b from-blue-300 to-indigo-500 rounded-full"></div>
+                    <ul className="space-y-8 ml-4">
                       {budget.historialEtapas.map((item, index) => (
-                        <li key={index} className="relative pl-6">
-                          <div className="absolute left-0 -translate-x-1/2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                        <li key={index} className="relative pl-8">
+                          <div className="absolute left-0 -translate-x-1/2 h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 border-2 border-white shadow-md flex items-center justify-center">
                             <div className="h-2 w-2 rounded-full bg-white"></div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge>{item.etapa}</Badge>
-                            <span className="text-xs text-gray-500">{item.fecha}</span>
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 shadow-sm border border-indigo-100">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-200">{item.etapa}</Badge>
+                              <span className="text-xs text-indigo-600 font-medium">{item.fecha}</span>
+                            </div>
+                            {item.comentario && (
+                              <p className="mt-1 text-sm text-gray-700">{item.comentario}</p>
+                            )}
                           </div>
-                          {item.comentario && (
-                            <p className="mt-1 text-sm text-gray-700">{item.comentario}</p>
-                          )}
                         </li>
                       ))}
                     </ul>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <History className="h-12 w-12 text-gray-300 mb-2" />
-                    <h3 className="text-base font-medium text-gray-900">Sin historial aún</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Este presupuesto no tiene historial de etapas registrado.
-                      {onAdvanceBudgetStage && ' Haga clic en "Avanzar etapa" para registrar la primera.'}
+                  <div className="flex flex-col items-center justify-center py-12 text-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-indigo-100 shadow-sm">
+                    <div className="h-16 w-16 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 flex items-center justify-center mb-4">
+                      <History className="h-8 w-8 text-indigo-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-indigo-900">Sin seguimiento de etapas</h3>
+                    <p className="mt-2 text-sm text-indigo-600 max-w-md mx-auto">
+                      Este presupuesto aún no tiene etapas de seguimiento registradas.
+                      {onAdvanceBudgetStage && 
+                        <span className="block mt-2">
+                          Haga clic en <span className="font-semibold text-indigo-800">"Avanzar etapa"</span> para registrar la primera.
+                        </span>
+                      }
                     </p>
                   </div>
                 )}
