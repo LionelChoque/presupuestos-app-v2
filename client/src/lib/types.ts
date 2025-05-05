@@ -5,6 +5,12 @@ export interface BudgetItem {
   cantidad?: number;
 }
 
+export interface BudgetStageHistoryItem {
+  etapa: string;
+  fecha: string;
+  comentario?: string;
+}
+
 export interface Budget {
   id: string;
   empresa: string;
@@ -27,6 +33,7 @@ export interface Budget {
   finalizado?: boolean;
   esLicitacion?: boolean;
   contacto?: ContactInfo;
+  historialEtapas?: BudgetStageHistoryItem[];
 }
 
 export interface ContactInfo {

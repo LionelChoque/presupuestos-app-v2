@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Budget, ContactInfo, ImportOptions, ImportResult } from '@/lib/types';
+import { Budget, ContactInfo, ImportOptions, ImportResult, BudgetStageHistoryItem } from '@/lib/types';
 import { processImportedCsv } from '@/lib/csvParser';
 import { useToast } from '@/hooks/use-toast';
 
@@ -223,6 +223,56 @@ export function useBudgets() {
     }
   };
 
+  // Change budget type
+  const changeBudgetType = async (budgetId: string, isLicitacion: boolean) => {
+    if (!budgetId) return;
+    
+    const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
+    if (budgetToUpdate) {
+      await updateBudgetMutation.mutateAsync({
+        ...budgetToUpdate,
+        esLicitacion: isLicitacion
+      });
+      
+      toast({
+        title: 'Tipo de presupuesto actualizado',
+        description: `El presupuesto ha sido marcado como ${isLicitacion ? 'Licitación' : 'Presupuesto Estándar'}.`
+      });
+    }
+  };
+  
+  // Add a new stage to the budget history
+  const advanceBudgetStage = async (budgetId: string, newStage: string, commentText?: string) => {
+    if (!budgetId) return;
+    
+    const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
+    if (budgetToUpdate) {
+      // Create new history item
+      const newHistoryItem: BudgetStageHistoryItem = {
+        etapa: newStage,
+        fecha: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
+        comentario: commentText
+      };
+      
+      // Add to existing history or create new array
+      const updatedHistory = [
+        ...(budgetToUpdate.historialEtapas || []),
+        newHistoryItem
+      ];
+      
+      await updateBudgetMutation.mutateAsync({
+        ...budgetToUpdate,
+        historialEtapas: updatedHistory,
+        tipoSeguimiento: newStage // Also update the current stage
+      });
+      
+      toast({
+        title: 'Etapa actualizada',
+        description: `El presupuesto ha avanzado a la etapa "${newStage}".`
+      });
+    }
+  };
+  
   // Open budget details modal
   const openBudgetDetails = (budget: Budget) => {
     setSelectedBudget(budget);
@@ -254,6 +304,8 @@ export function useBudgets() {
     saveContactInfo,
     finalizeBudget,
     openBudgetDetails,
-    importCsvFile
+    importCsvFile,
+    changeBudgetType,
+    advanceBudgetStage
   };
 }

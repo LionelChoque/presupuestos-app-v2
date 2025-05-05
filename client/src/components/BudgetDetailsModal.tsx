@@ -19,6 +19,7 @@ interface BudgetDetailsModalProps {
   onMarkAction: (budgetId: string) => void;
   onFinalizeBudget: (budgetId: string, status: 'Aprobado' | 'Rechazado') => void;
   onSaveContact: (budgetId: string, data: ContactInfo) => void;
+  onChangeBudgetType: (budgetId: string, isLicitacion: boolean) => void;
   isActionCompleted: boolean;
 }
 
@@ -31,6 +32,7 @@ export function BudgetDetailsModal({
   onMarkAction,
   onFinalizeBudget,
   onSaveContact,
+  onChangeBudgetType,
   isActionCompleted,
 }: BudgetDetailsModalProps) {
   const [notes, setNotes] = useState(budget?.notas || '');
@@ -139,10 +141,22 @@ export function BudgetDetailsModal({
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Tipo</dt>
-                  <dd className="mt-1">
-                    <Badge variant={budget.esLicitacion ? "destructive" : "outline"}>
+                  <dd className="mt-1 flex items-center space-x-2">
+                    <Badge 
+                      variant={budget.esLicitacion ? "destructive" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => onChangeBudgetType(budget.id, !budget.esLicitacion)}
+                    >
                       {budget.esLicitacion ? 'Licitación' : 'Presupuesto Estándar'}
                     </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-xs"
+                      onClick={() => onChangeBudgetType(budget.id, !budget.esLicitacion)}
+                    >
+                      Cambiar
+                    </Button>
                   </dd>
                 </div>
               </div>
