@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from 'zod';
 import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all budgets
@@ -176,6 +178,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching import logs:', error);
       res.status(500).json({ message: 'Failed to fetch import logs' });
+    }
+  });
+
+  // Import demo CSV file
+  app.post('/api/import/demo', async (req, res) => {
+    try {
+      const optionsSchema = z.object({
+        options: z.object({
+          compareWithPrevious: z.boolean(),
+          autoFinalizeMissing: z.boolean(),
+        }),
+      });
+      
+      const validatedData = optionsSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Invalid options data', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { options } = validatedData.data;
+      
+      // Leer el archivo CSV de demostración directamente desde el servidor
+      const csvFilePath = path.join(process.cwd(), 'attached_assets', 'PRESUPUESTOS_CON_ITEMS.csv');
+      console.log(`Leyendo archivo CSV de demostración: ${csvFilePath}`);
+      const csvData = readFileSync(csvFilePath, 'utf-8');
+      
+      // Procesar e importar los datos
+      const result = await storage.importCsvData(csvData, options);
+      
+      // Registrar la importación
+      await storage.createImportLog({
+        fileName: 'PRESUPUESTOS_CON_ITEMS.csv',
+        recordsImported: result.added,
+        recordsUpdated: result.updated,
+        recordsDeleted: result.deleted,
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error importing demo CSV:', error);
+      res.status(500).json({ message: 'Failed to import demo CSV data' });
     }
   });
 

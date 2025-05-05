@@ -61,17 +61,33 @@ export function ImportModal({
     }
   };
   
-  // Cargar archivo de demostración
+  // Cargar archivo de demostración directamente desde el servidor
   const loadDemoFile = async () => {
     try {
       setIsLoadingDemo(true);
-      const response = await fetch('/csv/PRESUPUESTOS_CON_ITEMS.csv');
-      const csvData = await response.text();
       
-      // Convertir texto a archivo File
-      const file = new File([csvData], 'PRESUPUESTOS_CON_ITEMS.csv', { type: 'text/csv' });
-      setSelectedFile(file);
-      setIsLoadingDemo(false);
+      // Solicitamos al servidor que cargue directamente el archivo de demostración
+      const response = await fetch('/api/import/demo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ options }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar el archivo de demostración');
+      }
+      
+      // La respuesta debería contener el resultado de la importación
+      const result = await response.json();
+      
+      // Avisamos al componente padre que la importación se realizó correctamente
+      setTimeout(() => {
+        setIsLoadingDemo(false);
+        onImport();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error al cargar el archivo de demostración:', error);
       setIsLoadingDemo(false);
