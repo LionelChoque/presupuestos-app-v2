@@ -41,7 +41,9 @@ function App() {
     saveContactInfo,
     finalizeBudget,
     openBudgetDetails,
-    importCsvFile
+    importCsvFile,
+    changeBudgetType,
+    advanceBudgetStage
   } = useBudgets();
 
   // If no route is active, redirect to dashboard
