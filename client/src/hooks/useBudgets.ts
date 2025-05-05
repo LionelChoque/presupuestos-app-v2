@@ -178,9 +178,24 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
+      // Crear nuevo item de historial para la acción
+      const newAction: BudgetActionHistoryItem = {
+        accion: newStatus ? 'Acción completada' : 'Acción reabierta',
+        fecha: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+        comentario: newStatus ? `Se completó la acción "${budgetToUpdate.accion}"` : `Se reabrió la acción "${budgetToUpdate.accion}"`
+      };
+      
+      // Añadir al historial existente o crear un nuevo array
+      const updatedActionHistory = [
+        ...(budgetToUpdate.historialAcciones || []),
+        newAction
+      ];
+      
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
-        completado: newStatus
+        completado: newStatus,
+        fechaCompletado: newStatus ? new Date().toISOString().split('T')[0] : undefined,
+        historialAcciones: updatedActionHistory
       });
     }
   };
@@ -208,10 +223,28 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
+      const currentDate = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      // Crear nuevo item de historial para la acción de finalización
+      const newAction: BudgetActionHistoryItem = {
+        accion: `Presupuesto ${status}`,
+        fecha: currentDate,
+        comentario: `El presupuesto ha sido ${status === 'Aprobado' ? 'aprobado' : 'rechazado'}`
+      };
+      
+      // Añadir al historial existente o crear un nuevo array
+      const updatedActionHistory = [
+        ...(budgetToUpdate.historialAcciones || []),
+        newAction
+      ];
+      
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
         estado: status,
-        finalizado: true
+        fechaEstado: currentDate,
+        finalizado: true,
+        fechaFinalizado: currentDate,
+        historialAcciones: updatedActionHistory
       });
       
       setIsBudgetDetailsOpen(false);

@@ -33,11 +33,15 @@ export const budgets = pgTable("budgets", {
   prioridad: text("prioridad").notNull(),
   alertas: jsonb("alertas").$type<string[]>().default([]),
   completado: boolean("completado").default(false),
+  fechaCompletado: text("fecha_completado"),
   estado: text("estado").default("Pendiente"),
+  fechaEstado: text("fecha_estado"),
   notas: text("notas").default(""),
   finalizado: boolean("finalizado").default(false),
+  fechaFinalizado: text("fecha_finalizado"),
   esLicitacion: boolean("es_licitacion").default(false),
   historialEtapas: jsonb("historial_etapas").$type<{ etapa: string, fecha: string, comentario?: string }[]>().default([]),
+  historialAcciones: jsonb("historial_acciones").$type<{ accion: string, fecha: string, comentario?: string }[]>().default([]),
 });
 
 export const contactInfo = pgTable("contact_info", {

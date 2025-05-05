@@ -11,6 +11,12 @@ export interface BudgetStageHistoryItem {
   comentario?: string;
 }
 
+export interface BudgetActionHistoryItem {
+  accion: string;
+  fecha: string;
+  comentario?: string;
+}
+
 export interface Budget {
   id: string;
   empresa: string;
@@ -28,12 +34,16 @@ export interface Budget {
   prioridad: string;
   alertas: string[];
   completado?: boolean;
+  fechaCompletado?: string;
   estado?: 'Pendiente' | 'Aprobado' | 'Rechazado' | 'Vencido';
+  fechaEstado?: string;
   notas?: string;
   finalizado?: boolean;
+  fechaFinalizado?: string;
   esLicitacion?: boolean;
   contacto?: ContactInfo;
   historialEtapas?: BudgetStageHistoryItem[];
+  historialAcciones?: BudgetActionHistoryItem[];
 }
 
 export interface ContactInfo {
