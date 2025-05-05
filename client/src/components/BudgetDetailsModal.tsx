@@ -34,11 +34,13 @@ export function BudgetDetailsModal({
   isActionCompleted,
 }: BudgetDetailsModalProps) {
   const [notes, setNotes] = useState(budget?.notas || '');
-  const [showContactForm, setShowContactForm] = useState(!contactInfo);
+  // Usar información de contacto del CSV si está disponible, sino usar la almacenada
+  const budgetContact = budget?.contacto || contactInfo;
+  const [showContactForm, setShowContactForm] = useState(!budgetContact);
   const [newContactInfo, setNewContactInfo] = useState<ContactInfo>({
-    nombre: contactInfo?.nombre || '',
-    email: contactInfo?.email || '',
-    telefono: contactInfo?.telefono || '',
+    nombre: budgetContact?.nombre || '',
+    email: budgetContact?.email || '',
+    telefono: budgetContact?.telefono || '',
   });
   const [activeTab, setActiveTab] = useState('info');
 
@@ -135,6 +137,14 @@ export function BudgetDetailsModal({
                     </Badge>
                   </dd>
                 </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Tipo</dt>
+                  <dd className="mt-1">
+                    <Badge variant={budget.esLicitacion ? "destructive" : "outline"}>
+                      {budget.esLicitacion ? 'Licitación' : 'Presupuesto Estándar'}
+                    </Badge>
+                  </dd>
+                </div>
               </div>
             </div>
             
@@ -189,7 +199,7 @@ export function BudgetDetailsModal({
                 <h4 className="text-sm font-medium text-gray-700">Información de contacto</h4>
               </div>
               <div className="p-4">
-                {!contactInfo && !showContactForm && (
+                {!budgetContact && !showContactForm && (
                   <div className="flex flex-col items-center justify-center py-4">
                     <User className="h-6 w-6 text-gray-400 mb-2" />
                     <p className="text-sm text-gray-500">No hay información de contacto disponible</p>
@@ -204,21 +214,21 @@ export function BudgetDetailsModal({
                   </div>
                 )}
                 
-                {contactInfo && !showContactForm && (
+                {budgetContact && !showContactForm && (
                   <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-6">
                     <div>
                       <dt className="text-xs font-medium text-gray-500">Nombre</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{contactInfo.nombre}</dd>
+                      <dd className="mt-1 text-sm text-gray-900">{budgetContact.nombre}</dd>
                     </div>
                     <div>
                       <dt className="text-xs font-medium text-gray-500">Email</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {contactInfo.email ? (
+                        {budgetContact.email ? (
                           <a
-                            href={`mailto:${contactInfo.email}`}
+                            href={`mailto:${budgetContact.email}`}
                             className="text-primary hover:text-primary-900"
                           >
-                            {contactInfo.email}
+                            {budgetContact.email}
                           </a>
                         ) : (
                           '-'
@@ -228,12 +238,12 @@ export function BudgetDetailsModal({
                     <div>
                       <dt className="text-xs font-medium text-gray-500">Teléfono</dt>
                       <dd className="mt-1 text-sm text-gray-900">
-                        {contactInfo.telefono ? (
+                        {budgetContact.telefono ? (
                           <a
-                            href={`tel:${contactInfo.telefono}`}
+                            href={`tel:${budgetContact.telefono}`}
                             className="text-primary hover:text-primary-900"
                           >
-                            {contactInfo.telefono}
+                            {budgetContact.telefono}
                           </a>
                         ) : (
                           '-'
@@ -241,20 +251,23 @@ export function BudgetDetailsModal({
                       </dd>
                     </div>
                     <div className="sm:col-span-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setNewContactInfo({
-                            nombre: contactInfo.nombre,
-                            email: contactInfo.email,
-                            telefono: contactInfo.telefono,
-                          });
-                          setShowContactForm(true);
-                        }}
-                      >
-                        Editar contacto
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setNewContactInfo({
+                              nombre: budgetContact.nombre,
+                              email: budgetContact.email,
+                              telefono: budgetContact.telefono,
+                            });
+                            setShowContactForm(true);
+                          }}
+                        >
+                          Editar contacto
+                        </Button>
+                        {budget.contacto && <Badge variant="secondary">Importado del CSV</Badge>}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -354,7 +367,7 @@ export function BudgetDetailsModal({
                       <Textarea
                         rows={10}
                         className="block w-full border-gray-300 rounded-md shadow-sm text-sm"
-                        value={getEmailTemplate(budget, contactInfo?.nombre || '')}
+                        value={getEmailTemplate(budget, budgetContact?.nombre || '')}
                         readOnly
                       />
                     </div>
@@ -362,7 +375,7 @@ export function BudgetDetailsModal({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(getEmailTemplate(budget, contactInfo?.nombre || ''))}
+                        onClick={() => copyToClipboard(getEmailTemplate(budget, budgetContact?.nombre || ''))}
                       >
                         <ClipboardCopy className="mr-2 h-4 w-4" />
                         Copiar
@@ -375,14 +388,14 @@ export function BudgetDetailsModal({
                     <div className="mb-2">
                       <div
                         className="block w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm text-gray-500"
-                        dangerouslySetInnerHTML={{ __html: getPhoneTemplate(budget, contactInfo?.nombre || '') }}
+                        dangerouslySetInnerHTML={{ __html: getPhoneTemplate(budget, budgetContact?.nombre || '') }}
                       />
                     </div>
                     <div className="flex justify-end">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(getPhoneTemplate(budget, contactInfo?.nombre || ''))}
+                        onClick={() => copyToClipboard(getPhoneTemplate(budget, budgetContact?.nombre || ''))}
                       >
                         <ClipboardCopy className="mr-2 h-4 w-4" />
                         Copiar
