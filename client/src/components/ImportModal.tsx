@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { ImportOptions } from '@/lib/types';
-import { Upload } from 'lucide-react';
+import { Upload, FileDown } from 'lucide-react';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ export function ImportModal({
 }: ImportModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
   
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -57,6 +58,23 @@ export function ImportModal({
     
     if (files && files.length > 0) {
       setSelectedFile(files[0]);
+    }
+  };
+  
+  // Cargar archivo de demostración
+  const loadDemoFile = async () => {
+    try {
+      setIsLoadingDemo(true);
+      const response = await fetch('/csv/PRESUPUESTOS_CON_ITEMS.csv');
+      const csvData = await response.text();
+      
+      // Convertir texto a archivo File
+      const file = new File([csvData], 'PRESUPUESTOS_CON_ITEMS.csv', { type: 'text/csv' });
+      setSelectedFile(file);
+      setIsLoadingDemo(false);
+    } catch (error) {
+      console.error('Error al cargar el archivo de demostración:', error);
+      setIsLoadingDemo(false);
     }
   };
   
@@ -101,8 +119,21 @@ export function ImportModal({
               </div>
               <p className="text-xs text-gray-500">CSV hasta 10MB</p>
               
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadDemoFile}
+                  disabled={isLoadingDemo}
+                  className="text-xs"
+                >
+                  <FileDown className="h-4 w-4 mr-1" />
+                  {isLoadingDemo ? 'Cargando...' : 'Cargar archivo de demostración'}
+                </Button>
+              </div>
+              
               {selectedFile && (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mt-2">
                   Archivo seleccionado: {selectedFile.name}
                 </p>
               )}
