@@ -109,6 +109,7 @@ function App() {
         onFinalizeBudget={(budgetId, status) => finalizeBudget(budgetId, status)}
         onSaveContact={(budgetId, data) => saveContactInfo(budgetId, data)}
         onChangeBudgetType={(budgetId, isLicitacion) => changeBudgetType(budgetId, isLicitacion)}
+        onAdvanceBudgetStage={(budgetId, newStage, commentText) => advanceBudgetStage(budgetId, newStage, commentText)}
         isActionCompleted={selectedBudget ? actionStatus[selectedBudget.id] || false : false}
       />
 

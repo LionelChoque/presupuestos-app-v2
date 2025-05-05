@@ -36,6 +36,8 @@ export const budgets = pgTable("budgets", {
   estado: text("estado").default("Pendiente"),
   notas: text("notas").default(""),
   finalizado: boolean("finalizado").default(false),
+  esLicitacion: boolean("es_licitacion").default(false),
+  historialEtapas: jsonb("historial_etapas").$type<{ etapa: string, fecha: string, comentario?: string }[]>().default([]),
 });
 
 export const contactInfo = pgTable("contact_info", {
