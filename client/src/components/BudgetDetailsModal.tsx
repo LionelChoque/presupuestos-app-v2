@@ -163,7 +163,6 @@ export function BudgetDetailsModal({
                     <Badge 
                       variant={budget.esLicitacion ? "destructive" : "outline"}
                       className="cursor-pointer"
-                      onClick={() => onChangeBudgetType(budget.id, !budget.esLicitacion)}
                     >
                       {budget.esLicitacion ? 'Licitación' : 'Presupuesto Estándar'}
                     </Badge>
@@ -171,7 +170,13 @@ export function BudgetDetailsModal({
                       variant="ghost" 
                       size="sm" 
                       className="h-6 px-2 text-xs"
-                      onClick={() => onChangeBudgetType(budget.id, !budget.esLicitacion)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Usar setTimeout para evitar actualizar durante la renderización
+                        setTimeout(() => {
+                          onChangeBudgetType(budget.id, !budget.esLicitacion);
+                        }, 0);
+                      }}
                     >
                       Cambiar
                     </Button>
