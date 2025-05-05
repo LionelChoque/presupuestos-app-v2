@@ -439,6 +439,112 @@ export function BudgetDetailsModal({
             )}
           </TabsContent>
           
+          {/* History Tab */}
+          <TabsContent value="history" className="space-y-4">
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h4 className="text-sm font-medium text-gray-700">Historial de etapas</h4>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowStageForm(true)}
+                  className="flex items-center text-xs"
+                  disabled={showStageForm || !onAdvanceBudgetStage}
+                >
+                  <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                  Avanzar etapa
+                </Button>
+              </div>
+              
+              {showStageForm && (
+                <div className="p-4 border-b border-gray-200">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="new-stage">Nueva etapa</Label>
+                      <Select onValueChange={setNewStage} value={newStage}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Seleccionar etapa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Contacto inicial">Contacto inicial</SelectItem>
+                          <SelectItem value="Envío de presupuesto">Envío de presupuesto</SelectItem>
+                          <SelectItem value="Negociación">Negociación</SelectItem>
+                          <SelectItem value="Revisión técnica">Revisión técnica</SelectItem>
+                          <SelectItem value="Esperando aprobación">Esperando aprobación</SelectItem>
+                          <SelectItem value="Entrega de muestras">Entrega de muestras</SelectItem>
+                          <SelectItem value="Cierre">Cierre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="stage-comment">Comentario (opcional)</Label>
+                      <Textarea
+                        id="stage-comment"
+                        value={stageComment}
+                        onChange={(e) => setStageComment(e.target.value)}
+                        placeholder="Agregar detalles sobre esta etapa..."
+                        className="mt-1"
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setShowStageForm(false);
+                          setNewStage('');
+                          setStageComment('');
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={handleAdvanceStage}
+                        disabled={!newStage}
+                      >
+                        Guardar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="p-4">
+                {budget.historialEtapas && budget.historialEtapas.length > 0 ? (
+                  <div className="relative">
+                    <div className="absolute left-4 top-0 h-full w-px bg-gray-200"></div>
+                    <ul className="space-y-6 ml-4">
+                      {budget.historialEtapas.map((item, index) => (
+                        <li key={index} className="relative pl-6">
+                          <div className="absolute left-0 -translate-x-1/2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                            <div className="h-2 w-2 rounded-full bg-white"></div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge>{item.etapa}</Badge>
+                            <span className="text-xs text-gray-500">{item.fecha}</span>
+                          </div>
+                          {item.comentario && (
+                            <p className="mt-1 text-sm text-gray-700">{item.comentario}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <History className="h-12 w-12 text-gray-300 mb-2" />
+                    <h3 className="text-base font-medium text-gray-900">Sin historial aún</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Este presupuesto no tiene historial de etapas registrado.
+                      {onAdvanceBudgetStage && ' Haga clic en "Avanzar etapa" para registrar la primera.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
           {/* Items Tab */}
           <TabsContent value="items" className="space-y-4">
             <div className="border border-gray-200 rounded-lg">
