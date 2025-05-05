@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Budget, BudgetItem, ContactInfo } from '@/lib/types';
 import { formatCurrency, getEmailTemplate, getPhoneTemplate, getStatusColor, getPriorityColor } from '@/lib/utils';
-import { AlertCircle, Calendar, CheckCircle, ClipboardCopy, X } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, ClipboardCopy, History, PlusCircle, X } from 'lucide-react';
 
 interface BudgetDetailsModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface BudgetDetailsModalProps {
   onFinalizeBudget: (budgetId: string, status: 'Aprobado' | 'Rechazado') => void;
   onSaveContact: (budgetId: string, data: ContactInfo) => void;
   onChangeBudgetType: (budgetId: string, isLicitacion: boolean) => void;
+  onAdvanceBudgetStage?: (budgetId: string, newStage: string, commentText?: string) => void;
   isActionCompleted: boolean;
 }
 
@@ -33,6 +35,7 @@ export function BudgetDetailsModal({
   onFinalizeBudget,
   onSaveContact,
   onChangeBudgetType,
+  onAdvanceBudgetStage,
   isActionCompleted,
 }: BudgetDetailsModalProps) {
   const [notes, setNotes] = useState(budget?.notas || '');
@@ -45,6 +48,11 @@ export function BudgetDetailsModal({
     telefono: budgetContact?.telefono || '',
   });
   const [activeTab, setActiveTab] = useState('info');
+  
+  // Variables para la funcionalidad de avance de etapa
+  const [showStageForm, setShowStageForm] = useState(false);
+  const [newStage, setNewStage] = useState('');
+  const [stageComment, setStageComment] = useState('');
 
   // Function to copy text to clipboard
   const copyToClipboard = (text: string) => {
@@ -68,6 +76,15 @@ export function BudgetDetailsModal({
     onSaveContact(budget.id, newContactInfo);
     setShowContactForm(false);
   };
+  
+  const handleAdvanceStage = () => {
+    if (!newStage || !onAdvanceBudgetStage) return;
+    
+    onAdvanceBudgetStage(budget.id, newStage, stageComment);
+    setShowStageForm(false);
+    setNewStage('');
+    setStageComment('');
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -82,10 +99,11 @@ export function BudgetDetailsModal({
         </DialogHeader>
 
         <Tabs defaultValue="info" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-4">
+          <TabsList className="grid grid-cols-5 mb-4">
             <TabsTrigger value="info">Información</TabsTrigger>
             <TabsTrigger value="contact">Contacto</TabsTrigger>
             <TabsTrigger value="actions">Acciones</TabsTrigger>
+            <TabsTrigger value="history">Historial</TabsTrigger>
             <TabsTrigger value="items">Productos</TabsTrigger>
           </TabsList>
           
