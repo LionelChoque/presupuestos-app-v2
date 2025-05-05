@@ -560,6 +560,49 @@ export function BudgetDetailsModal({
                   </div>
                 )}
               </div>
+              
+              <div className="mt-6 border border-gray-200 rounded-lg">
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-gray-200 rounded-t-lg flex justify-between items-center">
+                  <h4 className="text-sm font-medium text-purple-800">Historial de acciones</h4>
+                </div>
+                <div className="p-4">
+                  {budget.historialAcciones && budget.historialAcciones.length > 0 ? (
+                    <div className="space-y-6 pl-2">
+                      <ul className="space-y-6 relative before:absolute before:inset-0 before:left-1/2 before:-ml-px before:bg-gradient-to-b before:from-purple-300 before:to-pink-300 before:w-0.5">
+                        {budget.historialAcciones.map((item, index) => (
+                          <li key={index} className="relative flex items-start">
+                            <div className="flex items-center justify-center absolute left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 shadow-md shadow-purple-100">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                            <div className={`w-1/2 pr-8 pb-6 ${index % 2 === 0 ? 'text-right mr-auto' : 'ml-auto pl-8'}`}>
+                              <div className={`${index % 2 === 0 ? 'text-right' : 'text-left'}`}>
+                                <span className="block text-sm font-medium text-purple-700">{item.accion}</span>
+                                <span className="block text-xs text-gray-500 font-mono mt-1">{item.fecha}</span>
+                                {item.comentario && (
+                                  <p className="mt-2 text-sm text-gray-600">{item.comentario}</p>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-center bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-100 shadow-sm">
+                      <div className="h-16 w-16 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 flex items-center justify-center mb-4">
+                        <History className="h-8 w-8 text-purple-400" />
+                      </div>
+                      <h3 className="text-lg font-medium text-purple-900">Sin historial de acciones</h3>
+                      <p className="mt-2 text-sm text-purple-600 max-w-md mx-auto">
+                        Este presupuesto aún no tiene acciones registradas.
+                        <span className="block mt-2">
+                          Las acciones se registran automáticamente al interactuar con el presupuesto.
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
           

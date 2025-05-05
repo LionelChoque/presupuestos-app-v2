@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Budget, ContactInfo, ImportOptions, ImportResult, BudgetStageHistoryItem } from '@/lib/types';
+import { 
+  Budget, 
+  ContactInfo, 
+  ImportOptions, 
+  ImportResult, 
+  BudgetStageHistoryItem,
+  BudgetActionHistoryItem 
+} from '@/lib/types';
 import { processImportedCsv } from '@/lib/csvParser';
 import { useToast } from '@/hooks/use-toast';
 
