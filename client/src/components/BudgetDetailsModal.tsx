@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Budget, BudgetItem, ContactInfo } from '@/lib/types';
 import { formatCurrency, getEmailTemplate, getPhoneTemplate, getStatusColor, getPriorityColor } from '@/lib/utils';
-import { AlertCircle, Calendar, CheckCircle, ClipboardCopy, History, PlusCircle, X } from 'lucide-react';
+import { AlertCircle, Calendar, Check, CheckCircle, ClipboardCopy, History, PlusCircle, X } from 'lucide-react';
 
 interface BudgetDetailsModalProps {
   isOpen: boolean;

@@ -96,7 +96,57 @@ export function filterBudgets(budgets: Budget[], filters: BudgetFilters): Budget
       }
     }
     
-    return searchMatch && statusMatch;
+    // Date range filter
+    let dateMatch = true;
+    
+    if (filters.dateRange && (filters.dateRange.from || filters.dateRange.to)) {
+      const fromDate = filters.dateRange.from ? new Date(filters.dateRange.from) : new Date(0);
+      const toDate = filters.dateRange.to ? new Date(filters.dateRange.to) : new Date();
+      
+      // Ensure from date has time at beginning of day and to date has time at end of day
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(23, 59, 59, 999);
+      
+      let dateToCheck: Date | null = null;
+      
+      // Determine which date to check based on dateType
+      if (!filters.dateType || filters.dateType === 'creation') {
+        // Default is creation date
+        dateToCheck = new Date(budget.fechaCreacion);
+      } else if (filters.dateType === 'action' && budget.fechaCompletado) {
+        dateToCheck = new Date(budget.fechaCompletado);
+      } else if (filters.dateType === 'status' && budget.fechaEstado) {
+        dateToCheck = new Date(budget.fechaEstado);
+      } else if (filters.dateType === 'all') {
+        // For 'all', check any of the dates
+        const dates = [
+          budget.fechaCreacion ? new Date(budget.fechaCreacion) : null,
+          budget.fechaCompletado ? new Date(budget.fechaCompletado) : null,
+          budget.fechaEstado ? new Date(budget.fechaEstado) : null,
+          budget.fechaFinalizado ? new Date(budget.fechaFinalizado) : null
+        ].filter(d => d !== null) as Date[];
+        
+        // If any date is in range, it's a match
+        if (dates.length > 0) {
+          dateMatch = dates.some(date => date >= fromDate && date <= toDate);
+        } else {
+          dateMatch = false;
+        }
+        
+        // Skip the rest of date matching logic since we've already determined the result
+        return searchMatch && statusMatch && dateMatch;
+      }
+      
+      // If we have a date to check and it's not 'all' type
+      if (dateToCheck) {
+        dateMatch = dateToCheck >= fromDate && dateToCheck <= toDate;
+      } else {
+        // If we're looking for a specific date type and it doesn't exist, no match
+        dateMatch = filters.dateType ? false : true;
+      }
+    }
+    
+    return searchMatch && statusMatch && dateMatch;
   });
 }
 

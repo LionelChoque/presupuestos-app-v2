@@ -117,4 +117,9 @@ export interface TaskFilters {
 export interface BudgetFilters {
   search: string;
   status: 'all' | 'pending' | 'approved' | 'rejected' | 'expired';
+  dateRange?: {
+    from: string;
+    to: string;
+  };
+  dateType?: 'creation' | 'action' | 'status' | 'all';
 }
