@@ -26,6 +26,11 @@ function calculateBudgetDetails(budgetRows: CsvBudgetRow[]): {
   diasRestantes: number;
   diasTranscurridos: number;
   alertas: string[];
+  esLicitacion: boolean;
+  contacto?: {
+    nombre: string;
+    email?: string;
+  };
 } {
   const firstRow = budgetRows[0];
   
@@ -59,6 +64,17 @@ function calculateBudgetDetails(budgetRows: CsvBudgetRow[]): {
     alertas.push(`Presupuesto vencido hace ${Math.abs(diasRestantes)} días`);
   }
   
+  // Determinar si es una licitación (para esta implementación, consideraremos licitación
+  // los presupuestos con validez mayor a 60 días o empresa que contenga palabras clave como "municipalidad", "gobierno", etc.)
+  const esLicitacion = validez > 60 || 
+                     /municipalidad|gobierno|ministerio|secretaria|universidad|obras|ente|instituto/i.test(firstRow.Empresa);
+  
+  // Extraer información de contacto si está disponible
+  const contacto = firstRow.Nombre_Contacto ? {
+    nombre: firstRow.Nombre_Contacto,
+    email: firstRow.Direccion
+  } : undefined;
+  
   // Determine follow-up type and actions
   let tipoSeguimiento: string;
   let accion: string;
@@ -88,7 +104,9 @@ function calculateBudgetDetails(budgetRows: CsvBudgetRow[]): {
     prioridad,
     diasRestantes,
     diasTranscurridos,
-    alertas
+    alertas,
+    esLicitacion,
+    contacto
   };
 }
 
@@ -129,7 +147,9 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
               prioridad, 
               diasRestantes, 
               diasTranscurridos, 
-              alertas 
+              alertas,
+              esLicitacion,
+              contacto
             } = calculateBudgetDetails(rows);
             
             // Create budget object
@@ -149,7 +169,9 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
               accion,
               prioridad,
               alertas,
-              estado: tipoSeguimiento === 'Vencido' ? 'Vencido' : 'Pendiente'
+              estado: tipoSeguimiento === 'Vencido' ? 'Vencido' : 'Pendiente',
+              esLicitacion,
+              contacto
             };
             
             budgets.push(budget);
