@@ -11,10 +11,12 @@ import {
 } from '@/lib/types';
 import { processImportedCsv } from '@/lib/csvParser';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 export function useBudgets() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth(); // Obtener el usuario autenticado
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isBudgetDetailsOpen, setIsBudgetDetailsOpen] = useState(false);
@@ -30,13 +32,13 @@ export function useBudgets() {
   });
 
   // Fetch budgets from API
-  const { data: budgets = [], isLoading } = useQuery({
+  const { data: budgets = [], isLoading } = useQuery<Budget[]>({
     queryKey: ['/api/budgets'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch contacts from API
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [] } = useQuery<(ContactInfo & { budgetId: string })[]>({
     queryKey: ['/api/contacts'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -100,7 +102,7 @@ export function useBudgets() {
       setUploadProgress(30);
       
       // Process locally first to get the result
-      const { result } = await processImportedCsv(csvData, budgets, importOptions);
+      const { result } = await processImportedCsv(csvData, budgets as Budget[], importOptions);
       setUploadProgress(60);
       
       // Send to the server
@@ -287,11 +289,15 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
-      // Create new history item
+      const currentDate = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      
+      // Create new history item with user info
       const newHistoryItem: BudgetStageHistoryItem = {
         etapa: newStage,
-        fecha: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
-        comentario: commentText
+        fecha: currentDate,
+        comentario: commentText,
+        usuario: user ? user.username : undefined, // Incluir usuario si está autenticado
+        usuarioId: user ? user.id : undefined // Incluir ID del usuario si está autenticado
       };
       
       // Add to existing history or create new array
@@ -303,7 +309,9 @@ export function useBudgets() {
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
         historialEtapas: updatedHistory,
-        tipoSeguimiento: newStage // Also update the current stage
+        tipoSeguimiento: newStage, // Also update the current stage
+        fechaAccion: currentDate, // Actualizar fecha de la última acción
+        usuarioAsignado: user ? user.id : undefined // Asignar usuario actual al presupuesto
       });
       
       toast({
