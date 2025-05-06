@@ -268,9 +268,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBudgetItem(insertItem: InsertBudgetItem): Promise<BudgetItem> {
+    // Aseguramos que el precio sea string (esperado por el esquema)
+    const itemToInsert: any = {
+      ...insertItem
+    };
+    
+    // Convertir precio a string si es necesario
+    if (typeof itemToInsert.precio === 'number') {
+      itemToInsert.precio = String(itemToInsert.precio);
+    }
+    
     const [item] = await db
       .insert(budgetItems)
-      .values(insertItem as any)
+      .values(itemToInsert)
       .returning();
     
     return item as BudgetItem;
@@ -352,11 +362,14 @@ export class DatabaseStorage implements IStorage {
           
           // Add new items
           for (const item of budget.items) {
+            // Asegurar que los tipos sean correctos
+            const precio = typeof item.precio === 'number' ? String(item.precio) : item.precio;
+            const codigo = typeof item.codigo === 'number' ? String(item.codigo) : item.codigo;
             await this.createBudgetItem({
               budgetId: budget.id,
-              codigo: item.codigo,
+              codigo,
               descripcion: item.descripcion,
-              precio: item.precio,
+              precio,
               cantidad: item.cantidad || 1,
             });
           }
