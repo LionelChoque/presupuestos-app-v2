@@ -162,11 +162,57 @@ pg_restore -U presupuestos_user -d presupuestos_db -c backup_presupuestos_YYYYMM
 
 ## Solución de Problemas Comunes
 
+### Script de diagnóstico rápido
+Para verificar rápidamente el estado de todos los servicios y obtener sugerencias:
+```
+./check-service.sh
+```
+
+Este script revisará el estado de Nginx, PostgreSQL y PM2, mostrará los logs recientes y ofrecerá opciones para resolver problemas comunes.
+
+### Problema: Error 502 Bad Gateway
+Este error indica que Nginx no puede conectar con la aplicación Node.js. Para solucionarlo:
+
+1. Verificar si la aplicación está en ejecución:
+   ```
+   pm2 list
+   ```
+
+2. Si la aplicación no está en ejecución o muestra status "errored":
+   ```
+   pm2 logs presupuestos-app
+   ```
+   
+3. Reiniciar la aplicación:
+   ```
+   pm2 restart presupuestos-app
+   ```
+
+4. Verificar que está escuchando en el puerto correcto:
+   ```
+   sudo netstat -tulpn | grep :5000
+   ```
+
+5. Comprobar que no haya otro proceso usando el mismo puerto:
+   ```
+   sudo lsof -i :5000
+   ```
+
+6. Comprobar permisos en la carpeta de la aplicación:
+   ```
+   sudo chown -R baires:baires /home/baires/apps/presupuestos
+   ```
+
 ### Problema: La aplicación no arranca
 Verifica los logs:
 ```
 pm2 logs presupuestos-app
 ```
+
+Problemas comunes:
+- **Error de sintaxis**: Revisa los archivos de configuración
+- **Error de dependencias**: Ejecuta `npm install` nuevamente
+- **Error de conexión a base de datos**: Verifica credenciales y estado de PostgreSQL
 
 ### Problema: Error de conexión a la base de datos
 Verifica que la base de datos esté funcionando:
@@ -174,7 +220,12 @@ Verifica que la base de datos esté funcionando:
 sudo systemctl status postgresql
 ```
 
-Comprueba las credenciales en ecosystem.config.js.
+Prueba la conexión:
+```
+sudo -u postgres psql -d presupuestos_db -c "SELECT 1"
+```
+
+Comprueba las credenciales en ecosystem.config.js y .env
 
 ### Problema: La aplicación no es accesible desde el navegador
 1. Verifica que Nginx esté funcionando:
@@ -184,7 +235,15 @@ Comprueba las credenciales en ecosystem.config.js.
 
 2. Comprueba los logs de Nginx:
    ```
-   sudo tail -f /var/log/nginx/error.log
+   sudo tail -f /var/log/nginx/presupuestos.error.log
    ```
 
-3. Asegúrate de que los puertos necesarios estén abiertos en el firewall.
+3. Verifica la configuración de Nginx:
+   ```
+   sudo nginx -t
+   ```
+
+4. Asegúrate de que los puertos necesarios estén abiertos en el firewall:
+   ```
+   sudo ufw status
+   ```
