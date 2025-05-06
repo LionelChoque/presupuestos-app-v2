@@ -18,21 +18,12 @@ export const users = pgTable("users", {
 // Tabla para registrar actividades de los usuarios
 export const userActivities = pgTable("user_activities", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   tipo: text("tipo").notNull(), // login, budget_update, budget_create, etc.
   descripcion: text("descripcion").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
   detalles: jsonb("detalles").$type<Record<string, any>>(),
   entidadId: text("entidad_id"), // ID del presupuesto afectado, si aplica
-});
-
-export const budgetItems = pgTable("budget_items", {
-  id: serial("id").primaryKey(),
-  budgetId: text("budget_id").notNull(),
-  codigo: text("codigo"),
-  descripcion: text("descripcion").notNull(),
-  precio: decimal("precio", { precision: 15, scale: 2 }).notNull(),
-  cantidad: integer("cantidad").default(1),
 });
 
 export const budgets = pgTable("budgets", {
@@ -60,16 +51,27 @@ export const budgets = pgTable("budgets", {
   esLicitacion: boolean("es_licitacion").default(false),
   historialEtapas: jsonb("historial_etapas").$type<{ etapa: string, fecha: string, comentario?: string, usuario?: string }[]>().default([]),
   historialAcciones: jsonb("historial_acciones").$type<{ accion: string, fecha: string, comentario?: string, usuario?: string }[]>().default([]),
-  usuarioAsignado: integer("usuario_asignado"),
+  usuarioAsignado: integer("usuario_asignado").references(() => users.id),
+});
+
+export const budgetItems = pgTable("budget_items", {
+  id: serial("id").primaryKey(),
+  budgetId: text("budget_id").notNull().references(() => budgets.id),
+  codigo: text("codigo"),
+  descripcion: text("descripcion").notNull(),
+  precio: decimal("precio", { precision: 15, scale: 2 }).notNull(),
+  cantidad: integer("cantidad").default(1),
 });
 
 export const contactInfo = pgTable("contact_info", {
   id: serial("id").primaryKey(),
-  budgetId: text("budget_id").notNull().unique(),
+  budgetId: text("budget_id").notNull().unique().references(() => budgets.id),
   nombre: text("nombre").notNull(),
   email: text("email"),
   telefono: text("telefono"),
 });
+
+// Las relaciones se definirán después en TypeScript usando una librería compatible
 
 export const importLogs = pgTable("import_logs", {
   id: serial("id").primaryKey(),

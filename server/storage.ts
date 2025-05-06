@@ -20,7 +20,7 @@ import {
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -28,6 +28,20 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<Omit<InsertUser, 'id'>>): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  getUserCount(): Promise<number>;
+  
+  // User activity operations
+  createUserActivity(activity: InsertUserActivity): Promise<UserActivity>;
+  getUserActivities(limit?: number, offset?: number): Promise<(UserActivity & { username: string })[]>;
+  getUserActivitiesByUserId(userId: number, limit?: number, offset?: number): Promise<UserActivity[]>;
+  getUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    userActivities: { userId: number; username: string; count: number }[];
+    recentActivities: (UserActivity & { username: string })[];
+  }>;
   
   // Budget operations
   getAllBudgets(): Promise<Budget[]>;
@@ -71,6 +85,119 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<Omit<InsertUser, 'id'>>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set(userData as any)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+  
+  async getUserCount(): Promise<number> {
+    const result = await db.select({ count: sql`count(*)` }).from(users);
+    return Number(result[0].count);
+  }
+  
+  // User activity operations
+  async createUserActivity(activity: InsertUserActivity): Promise<UserActivity> {
+    const [userActivity] = await db
+      .insert(userActivities)
+      .values(activity)
+      .returning();
+    return userActivity;
+  }
+  
+  async getUserActivities(limit = 50, offset = 0): Promise<(UserActivity & { username: string })[]> {
+    // Obtener actividades
+    const activities = await db.select()
+      .from(userActivities)
+      .orderBy(desc(userActivities.timestamp))
+      .limit(limit)
+      .offset(offset);
+    
+    // Obtener usuarios relacionados
+    const userIds = [...new Set(activities.map(a => a.userId))];
+    const usersData = userIds.length > 0 
+      ? await db.select().from(users).where(sql`id IN (${userIds.join(',')})`) 
+      : [];
+    
+    const usernameMap = Object.fromEntries(usersData.map(u => [u.id, u.username]));
+    
+    // Combinar datos
+    return activities.map(activity => ({
+      ...activity,
+      username: usernameMap[activity.userId] || 'Usuario eliminado'
+    }));
+  }
+  
+  async getUserActivitiesByUserId(userId: number, limit = 50, offset = 0): Promise<UserActivity[]> {
+    return db.select()
+      .from(userActivities)
+      .where(eq(userActivities.userId, userId))
+      .orderBy(desc(userActivities.timestamp))
+      .limit(limit)
+      .offset(offset);
+  }
+  
+  async getUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    userActivities: { userId: number; username: string; count: number }[];
+    recentActivities: (UserActivity & { username: string })[];
+  }> {
+    // Total usuarios
+    const totalUsers = await this.getUserCount();
+    
+    // Usuarios activos en el último mes
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const activeUsersResult = await db.select({ count: sql`count(distinct user_id)` })
+      .from(userActivities)
+      .where(sql`timestamp > ${oneMonthAgo.toISOString()}`);
+    
+    const activeUsers = Number(activeUsersResult[0].count);
+    
+    // Actividad por usuario (top 10)
+    const activitiesByUser = await db.select({
+      userId: userActivities.userId,
+      count: sql`count(*)`,
+    })
+    .from(userActivities)
+    .groupBy(userActivities.userId)
+    .orderBy(sql`count(*) desc`)
+    .limit(10);
+    
+    // Obtener nombres de usuario
+    const userIds = activitiesByUser.map(a => a.userId);
+    const usersData = await db.select()
+      .from(users)
+      .where(sql`id in ${userIds}`);
+    
+    const usersMap = Object.fromEntries(usersData.map(u => [u.id, u.username]));
+    
+    const userActivities = activitiesByUser.map(a => ({
+      userId: a.userId,
+      username: usersMap[a.userId] || 'Usuario eliminado',
+      count: Number(a.count)
+    }));
+    
+    // Actividades recientes
+    const recentActivitiesRaw = await this.getUserActivities(10, 0);
+    
+    return {
+      totalUsers,
+      activeUsers,
+      userActivities,
+      recentActivities: recentActivitiesRaw
+    };
   }
 
   // Budget operations
