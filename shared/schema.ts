@@ -6,6 +6,24 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email"),
+  nombre: text("nombre"),
+  apellido: text("apellido"),
+  rol: text("rol").default("usuario").notNull(),
+  fechaCreacion: timestamp("fecha_creacion").defaultNow(),
+  ultimoAcceso: timestamp("ultimo_acceso"),
+  activo: boolean("activo").default(true),
+});
+
+// Tabla para registrar actividades de los usuarios
+export const userActivities = pgTable("user_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  tipo: text("tipo").notNull(), // login, budget_update, budget_create, etc.
+  descripcion: text("descripcion").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+  detalles: jsonb("detalles").$type<Record<string, any>>(),
+  entidadId: text("entidad_id"), // ID del presupuesto afectado, si aplica
 });
 
 export const budgetItems = pgTable("budget_items", {
@@ -40,8 +58,9 @@ export const budgets = pgTable("budgets", {
   finalizado: boolean("finalizado").default(false),
   fechaFinalizado: text("fecha_finalizado"),
   esLicitacion: boolean("es_licitacion").default(false),
-  historialEtapas: jsonb("historial_etapas").$type<{ etapa: string, fecha: string, comentario?: string }[]>().default([]),
-  historialAcciones: jsonb("historial_acciones").$type<{ accion: string, fecha: string, comentario?: string }[]>().default([]),
+  historialEtapas: jsonb("historial_etapas").$type<{ etapa: string, fecha: string, comentario?: string, usuario?: string }[]>().default([]),
+  historialAcciones: jsonb("historial_acciones").$type<{ accion: string, fecha: string, comentario?: string, usuario?: string }[]>().default([]),
+  usuarioAsignado: integer("usuario_asignado"),
 });
 
 export const contactInfo = pgTable("contact_info", {
@@ -62,9 +81,15 @@ export const importLogs = pgTable("import_logs", {
 });
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  fechaCreacion: true,
+  ultimoAcceso: true
+});
+
+export const insertUserActivitySchema = createInsertSchema(userActivities).omit({
+  id: true,
+  timestamp: true,
 });
 
 export const insertBudgetItemSchema = createInsertSchema(budgetItems).omit({
@@ -99,3 +124,6 @@ export type ContactInfo = typeof contactInfo.$inferSelect;
 
 export type InsertImportLog = z.infer<typeof insertImportLogSchema>;
 export type ImportLog = typeof importLogs.$inferSelect;
+
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+export type UserActivity = typeof userActivities.$inferSelect;
