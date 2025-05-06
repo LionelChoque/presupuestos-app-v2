@@ -64,6 +64,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Budget not found' });
       }
       
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "budget_update", 
+          `Usuario ${req.user.username} actualizó el presupuesto ${updatedBudget.id}`,
+          updatedBudget.id,
+          { ...validatedData.data }
+        );
+      }
+      
       res.json(updatedBudget);
     } catch (error) {
       console.error('Error updating budget:', error);
@@ -97,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create or update contact for a budget
-  app.post('/api/contacts', async (req, res) => {
+  app.post('/api/contacts', isAuthenticated, async (req, res) => {
     try {
       const contactSchema = z.object({
         budgetId: z.string(),
@@ -122,8 +133,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (existingContact) {
         contact = await storage.updateContact(budgetId, contactData);
+        
+        // Registrar la actividad de actualización
+        if (req.user) {
+          await logUserActivity(
+            req.user.id, 
+            "contact_update", 
+            `Usuario ${req.user.username} actualizó el contacto para el presupuesto ${budgetId}`,
+            budgetId,
+            contactData
+          );
+        }
       } else {
         contact = await storage.createContact(budgetId, contactData);
+        
+        // Registrar la actividad de creación
+        if (req.user) {
+          await logUserActivity(
+            req.user.id, 
+            "contact_create", 
+            `Usuario ${req.user.username} creó el contacto para el presupuesto ${budgetId}`,
+            budgetId,
+            contactData
+          );
+        }
       }
       
       res.json(contact);
@@ -134,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import CSV data
-  app.post('/api/import', async (req, res) => {
+  app.post('/api/import', isAuthenticated, async (req, res) => {
     try {
       const importSchema = z.object({
         csvData: z.string(),
@@ -166,6 +199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recordsDeleted: result.deleted,
       });
       
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "import_csv", 
+          `Usuario ${req.user.username} importó CSV con ${result.added} nuevos, ${result.updated} actualizados, ${result.deleted} eliminados`,
+          undefined,
+          { ...options, totalRecords: result.total }
+        );
+      }
+      
       res.json(result);
     } catch (error) {
       console.error('Error importing CSV:', error);
@@ -174,7 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get import logs
-  app.get('/api/import-logs', async (req, res) => {
+  app.get('/api/import-logs', isAuthenticated, async (req, res) => {
     try {
       const logs = await storage.getImportLogs();
       res.json(logs);
@@ -185,7 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import demo CSV file
-  app.post('/api/import/demo', async (req, res) => {
+  app.post('/api/import/demo', isAuthenticated, async (req, res) => {
     try {
       const optionsSchema = z.object({
         options: z.object({
@@ -220,6 +264,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recordsUpdated: result.updated,
         recordsDeleted: result.deleted,
       });
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "import_demo", 
+          `Usuario ${req.user.username} importó CSV de demostración con ${result.added} nuevos, ${result.updated} actualizados, ${result.deleted} eliminados`,
+          null,
+          { ...options, totalRecords: result.total }
+        );
+      }
       
       res.json(result);
     } catch (error) {
