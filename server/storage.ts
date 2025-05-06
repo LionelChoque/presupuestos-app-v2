@@ -9,11 +9,14 @@ import {
   InsertImportLog, 
   User, 
   InsertUser,
+  UserActivity,
+  InsertUserActivity,
   budgets,
   budgetItems,
   contactInfo,
   importLogs,
-  users
+  users,
+  userActivities
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
 import { db } from "./db";
