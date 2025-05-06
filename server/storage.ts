@@ -20,7 +20,7 @@ import {
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -122,19 +122,20 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
     
-    // Obtener usuarios relacionados
-    const userIds = [...new Set(activities.map(a => a.userId))];
-    const usersData = userIds.length > 0 
-      ? await db.select().from(users).where(sql`id IN (${userIds.join(',')})`) 
-      : [];
+    // Procesar cada actividad para obtener el nombre de usuario
+    const result: (UserActivity & { username: string })[] = [];
     
-    const usernameMap = Object.fromEntries(usersData.map(u => [u.id, u.username]));
+    for (const activity of activities) {
+      // Obtener usuario
+      const [user] = await db.select().from(users).where(eq(users.id, activity.userId));
+      
+      result.push({
+        ...activity,
+        username: user?.username || 'Usuario eliminado'
+      });
+    }
     
-    // Combinar datos
-    return activities.map(activity => ({
-      ...activity,
-      username: usernameMap[activity.userId] || 'Usuario eliminado'
-    }));
+    return result;
   }
   
   async getUserActivitiesByUserId(userId: number, limit = 50, offset = 0): Promise<UserActivity[]> {
@@ -166,7 +167,7 @@ export class DatabaseStorage implements IStorage {
     const activeUsers = Number(activeUsersResult[0].count);
     
     // Actividad por usuario (top 10)
-    const activitiesByUser = await db.select({
+    const activitiesData = await db.select({
       userId: userActivities.userId,
       count: sql`count(*)`,
     })
@@ -176,14 +177,21 @@ export class DatabaseStorage implements IStorage {
     .limit(10);
     
     // Obtener nombres de usuario
-    const userIds = activitiesByUser.map(a => a.userId);
-    const usersData = await db.select()
-      .from(users)
-      .where(sql`id in ${userIds}`);
+    const userIdsList = activitiesData.map(a => a.userId);
+    let usersData: User[] = [];
+    
+    if (userIdsList.length > 0) {
+      for (const userId of userIdsList) {
+        const userResult = await db.select().from(users).where(eq(users.id, userId));
+        if (userResult.length > 0) {
+          usersData.push(userResult[0]);
+        }
+      }
+    }
     
     const usersMap = Object.fromEntries(usersData.map(u => [u.id, u.username]));
     
-    const userActivities = activitiesByUser.map(a => ({
+    const userActivityStats = activitiesData.map(a => ({
       userId: a.userId,
       username: usersMap[a.userId] || 'Usuario eliminado',
       count: Number(a.count)
@@ -195,7 +203,7 @@ export class DatabaseStorage implements IStorage {
     return {
       totalUsers,
       activeUsers,
-      userActivities,
+      userActivities: userActivityStats,
       recentActivities: recentActivitiesRaw
     };
   }
