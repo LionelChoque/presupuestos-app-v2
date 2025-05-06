@@ -15,6 +15,7 @@ import NotFound from "@/pages/not-found";
 import { useBudgets } from '@/hooks/useBudgets';
 import { AuthProvider } from '@/hooks/use-auth';
 import AuthPage from '@/pages/auth-page';
+import UsersAdmin from '@/pages/UsersAdmin';
 import ProtectedRoute from '@/lib/protected-route';
 
 function App() {
@@ -97,6 +98,14 @@ function App() {
             component={() => (
               <ProtectedRoute>
                 <Reports />
+              </ProtectedRoute>
+            )}
+          />
+          <Route 
+            path="/admin/users" 
+            component={() => (
+              <ProtectedRoute adminOnly>
+                <UsersAdmin />
               </ProtectedRoute>
             )}
           />
