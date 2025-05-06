@@ -1,0 +1,80 @@
+Resumen de Despliegue de la Aplicación de Presupuestos
+Problemas Identificados
+Incompatibilidad de TypeScript en Producción:
+
+El código TypeScript necesita ser transpilado a JavaScript para ejecutarse en producción.
+Las importaciones entre archivos .ts deben ser adaptadas a .js en el código compilado.
+Manejo Inconsistente de Módulos:
+
+Conflictos entre CommonJS y ES Modules.
+La aplicación necesita una configuración consistente de módulos.
+Estructura de Directorios y Compilación:
+
+Los archivos compilados deben organizarse en una estructura que refleje las importaciones.
+Las rutas de importación relativas (como @shared/) deben ser ajustadas en producción.
+Configuración de Base de Datos:
+
+La autenticación y conexión con PostgreSQL debe ser configurada correctamente.
+Las tablas de la base de datos deben existir antes de iniciar la aplicación.
+Servir el Frontend:
+
+El frontend necesita ser construido y servido correctamente desde Express.
+Las rutas deben manejar correctamente la SPA (Single Page Application).
+Soluciones Implementadas
+Compilación Correcta de TypeScript:
+
+Transpilar todos los archivos .ts a .js usando tsc.
+Corregir las importaciones para que apunten a los archivos .js.
+Mantener la estructura de directorios para preservar las importaciones relativas.
+Configuración Uniforme de Módulos:
+
+Configurar package.json con "type": "module" para usar ES Modules consistentemente.
+Adaptar las importaciones para que funcionen con ES Modules.
+Punto de Entrada Simplificado:
+
+Crear un server.js simplificado que maneje las importaciones correctamente.
+Usar importaciones dinámicas para manejar dependencias que podrían fallar.
+Configuración y Persistencia:
+
+Configurar variables de entorno para producción.
+Configurar correctamente la cadena de conexión a PostgreSQL.
+Asegurar que las tablas existan en la base de datos.
+Nginx y PM2:
+
+Configurar Nginx como proxy inverso para la aplicación.
+Configurar PM2 para gestionar el proceso Node.js.
+Asegurar la persistencia de la aplicación a través de reinicios del sistema.
+Script de Despliegue
+El script de despliegue deploy-original-app.sh realiza los siguientes pasos:
+
+Copia los archivos fuente a un directorio de trabajo limpio.
+Configura las variables de entorno para producción.
+Corrige el package.json para usar ES Modules.
+Instala las dependencias.
+Compila el frontend con Vite.
+Transpila los archivos TypeScript a JavaScript.
+Corrige las importaciones en los archivos compilados.
+Crea un punto de entrada para el servidor que maneja las importaciones correctamente.
+Configura y arranca la aplicación con PM2.
+Actualiza la configuración de Nginx para servir la aplicación.
+Mejoras para el Futuro
+Proceso de Compilación Optimizado:
+
+Integrar la compilación TypeScript en el script de construcción.
+Usar herramientas como tsconfig-paths para manejar alias de importación.
+Estructura de Proyecto Mejorada:
+
+Reorganizar la estructura de archivos para una mejor separación de preocupaciones.
+Usar una estructura que facilite la compilación para producción.
+Gestión de Dependencias:
+
+Separar claramente dependencias de producción y desarrollo.
+Minimizar el tamaño del paquete de producción.
+Proceso de CI/CD:
+
+Implementar pruebas automatizadas.
+Crear un pipeline de integración continua y despliegue.
+Monitoreo y Logs:
+
+Configurar monitoreo de la aplicación.
+Establecer rotación de logs y alertas.
