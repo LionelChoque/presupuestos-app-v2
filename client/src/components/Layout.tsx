@@ -5,6 +5,7 @@ import {
   CalendarClock,
   CheckSquare,
   ClipboardList,
+  Users,
   LogOut,
   Menu,
   Settings,
@@ -20,6 +21,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,6 +32,7 @@ interface LayoutProps {
 export function Layout({ children, onImport }: LayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
 
   const navItems = [
     {
@@ -86,34 +90,76 @@ export function Layout({ children, onImport }: LayoutProps) {
               </svg>
               Importar CSV
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white p-0"
-                >
-                  <span className="sr-only">Abrir menú de usuario</span>
-                  <span className="text-xs font-medium">AD</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white p-0"
+                  >
+                    <span className="sr-only">Abrir menú de usuario</span>
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-white text-xs">
+                        {user.nombre && user.apellido
+                          ? `${user.nombre[0]}${user.apellido[0]}`
+                          : user.username.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.nombre && user.apellido
+                          ? `${user.nombre} ${user.apellido}`
+                          : user.username}
+                      </p>
+                      {user.email && (
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {user.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Mi perfil</span>
+                  </DropdownMenuItem>
+                  {user.rol === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/users">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Gestionar usuarios</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configuración</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{logoutMutation.isPending ? 'Cerrando sesión...' : 'Cerrar sesión'}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/auth">
                   <User className="mr-2 h-4 w-4" />
-                  <span>Mi perfil</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Configuración</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Cerrar sesión</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  Iniciar sesión
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
