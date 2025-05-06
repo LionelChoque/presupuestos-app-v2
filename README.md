@@ -171,7 +171,26 @@ Para verificar rápidamente el estado de todos los servicios y obtener sugerenci
 Este script revisará el estado de Nginx, PostgreSQL y PM2, mostrará los logs recientes y ofrecerá opciones para resolver problemas comunes.
 
 ### Problema: Error 502 Bad Gateway
-Este error indica que Nginx no puede conectar con la aplicación Node.js. Para solucionarlo:
+Este error indica que Nginx no puede conectar con la aplicación Node.js. 
+
+**Solución automática:**
+Ejecuta el script de corrección automática que solucionará los problemas comunes:
+
+```bash
+cd /home/baires/apps/presupuestos
+chmod +x fix-deployment.sh
+./fix-deployment.sh
+```
+
+Este script:
+- Crea el archivo `.env` si no existe
+- Verifica que exista un archivo `index.js` para producción
+- Ajusta la configuración de PM2
+- Reinicia los servicios
+- Libera memoria del sistema
+
+**Solución manual:**
+Si prefieres resolver el problema manualmente:
 
 1. Verificar si la aplicación está en ejecución:
    ```
@@ -183,24 +202,33 @@ Este error indica que Nginx no puede conectar con la aplicación Node.js. Para s
    pm2 logs presupuestos-app
    ```
    
-3. Reiniciar la aplicación:
+3. Verificar que existe el archivo index.js:
    ```
-   pm2 restart presupuestos-app
+   ls -la index.js
+   ```
+   
+   Si no existe, busca el archivo principal y crea un enlace:
+   ```
+   find . -maxdepth 1 -name "*.js" | grep -v node_modules
+   ln -sf NOMBRE_ARCHIVO.js index.js
+   ```
+   
+4. Asegúrate de que existe el archivo .env:
+   ```
+   echo 'NODE_ENV=production
+PORT=5000
+DATABASE_URL=postgresql://presupuestos_user:CONTRASEÑA@localhost:5432/presupuestos_db' > .env
    ```
 
-4. Verificar que está escuchando en el puerto correcto:
+5. Reiniciar la aplicación con la configuración cjs:
+   ```
+   pm2 delete all
+   NODE_ENV=production pm2 start ecosystem.config.cjs
+   ```
+
+6. Verificar que está escuchando en el puerto correcto:
    ```
    sudo netstat -tulpn | grep :5000
-   ```
-
-5. Comprobar que no haya otro proceso usando el mismo puerto:
-   ```
-   sudo lsof -i :5000
-   ```
-
-6. Comprobar permisos en la carpeta de la aplicación:
-   ```
-   sudo chown -R baires:baires /home/baires/apps/presupuestos
    ```
 
 ### Problema: La aplicación no arranca

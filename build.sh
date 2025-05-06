@@ -15,12 +15,14 @@ cp -r dist/*.js dist/deploy/
 cp package.json dist/deploy/
 cp package-lock.json dist/deploy/
 cp ecosystem.config.js dist/deploy/
+cp ecosystem.config.cjs dist/deploy/
 cp -r nginx dist/deploy/
 cp db-setup.sql dist/deploy/
 cp migrate.sh dist/deploy/
 cp install-server.sh dist/deploy/
 cp import-data.sh dist/deploy/
 cp check-service.sh dist/deploy/
+cp fix-deployment.sh dist/deploy/
 cp README.md dist/deploy/
 cp -r attached_assets dist/deploy/
 
