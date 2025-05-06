@@ -1,110 +1,124 @@
-# Mejoras para Despliegue en Producción
+# Guía para desplegar la aplicación en producción
 
-## Problemas Identificados y Soluciones Implementadas
+## Pasos previos
 
-### 1. Incompatibilidad de TypeScript en Producción
+1. Ya has configurado correctamente Nginx con SSL para el subdominio presupuestos.bairesanalitica.com
+2. Has creado un archivo de configuración de Nginx que redirige el tráfico HTTP al puerto 443 (HTTPS)
 
-**Problemas:**
-- El código TypeScript necesitaba ser transpilado correctamente a JavaScript para entornos de producción
-- Las importaciones entre archivos necesitaban actualización (.ts → .js)
-- La configuración original de TypeScript estaba optimizada para desarrollo, no para producción
+## Paso 1: Preparar el directorio en el servidor
 
-**Soluciones:**
-- Creado archivo `tsconfig.prod.json` específico para producción
-- Configurado para generar código JavaScript en una estructura coherente
-- Implementado proceso automático para corregir rutas de importación
+```bash
+# Crear directorio para la aplicación
+sudo mkdir -p /var/www/presupuestos.bairesanalitica.com
+sudo chown -R $USER:$USER /var/www/presupuestos.bairesanalitica.com
+```
 
-### 2. Manejo Inconsistente de Módulos
+## Paso 2: Transferir archivos al servidor
 
-**Problemas:**
-- Conflictos entre CommonJS y ES Modules
-- Problemas con las rutas de importación relativas y alias como `@shared/*`
+Existen dos opciones:
 
-**Soluciones:**
-- Configuración uniforme para usar ES Modules 
-- Script automatizado para transformar importaciones
-- Punto de entrada optimizado para producción (`deploy-server.js`)
+### Opción 1: Transfiriendo el código fuente
 
-### 3. Estructura de Directorios y Compilación
+```bash
+# En tu máquina local
+git clone <url-repositorio> /tmp/presupuestos
+cd /tmp/presupuestos
+tar -czf presupuestos-src.tar.gz --exclude=node_modules --exclude=.git .
 
-**Problemas:**
-- Estructura inadecuada para producción
-- Dificultad para mantener las importaciones relativas
+# Transferir al servidor
+scp presupuestos-src.tar.gz usuario@tu-servidor:/var/www/presupuestos.bairesanalitica.com/
 
-**Soluciones:**
-- Nuevo proceso de construcción que mantiene estructura coherente
-- Separación clara entre archivos cliente y servidor
-- Organización optimizada para despliegue
+# En el servidor
+cd /var/www/presupuestos.bairesanalitica.com
+tar -xzf presupuestos-src.tar.gz
+rm presupuestos-src.tar.gz
+```
 
-### 4. Configuración de Base de Datos
+### Opción 2: Usando el archivo ya preparado
 
-**Problemas:**
-- Problemas al conectar con PostgreSQL en producción
-- Falta de scripts para configuración inicial
+```bash
+# Transferir al servidor
+scp presupuestos-deploy.tar.gz usuario@tu-servidor:/var/www/presupuestos.bairesanalitica.com/
 
-**Soluciones:**
-- Scripts de configuración de base de datos mejorados
-- Proceso claro para migración y configuración inicial
-- Manejo adecuado de parámetros de conexión
+# En el servidor
+cd /var/www/presupuestos.bairesanalitica.com
+tar -xzf presupuestos-deploy.tar.gz
+rm presupuestos-deploy.tar.gz
+```
 
-### 5. Servir el Frontend
+## Paso 3: Instalar dependencias y configurar la aplicación
 
-**Problemas:**
-- Dificultad para servir correctamente el frontend desde Express
-- Manejo inadecuado de rutas SPA
+```bash
+# En el servidor
+cd /var/www/presupuestos.bairesanalitica.com
 
-**Soluciones:**
-- Configuración optimizada en el servidor para archivos estáticos
-- Manejo correcto de rutas para SPA
-- Integración adecuada con Nginx
+# Instalar dependencias de Node.js
+npm install
 
-## Nuevos Scripts y Herramientas
+# Configurar la base de datos
+sudo -u postgres psql -f config/db-setup.sql
 
-### build-prod.sh
-Script completo de construcción para producción que:
-- Transpila TypeScript a JavaScript
-- Corrige las importaciones
-- Genera los archivos de configuración necesarios
-- Organiza todo en una estructura optimizada para despliegue
+# IMPORTANTE: Editar la contraseña de la base de datos
+nano ecosystem.config.js
+# Cambiar: CHANGE_THIS_PASSWORD por una contraseña segura
+```
 
-### deploy-to-vps.sh
-Script para automatizar el despliegue al VPS:
-- Construye la aplicación
-- Transfiere los archivos al servidor
-- Configura el entorno en el servidor
+## Paso 4: Compilar la aplicación
 
-### deploy-server.js
-Punto de entrada optimizado para producción:
-- Maneja correctamente las importaciones
-- Configura adecuadamente Express
-- Proporciona manejo de errores mejorado
+```bash
+# Compilar el frontend
+npm run build
 
-### Otros Scripts Útiles
-- `migrate.sh`: Para ejecutar migraciones en producción
-- `import-data.sh`: Para importar datos CSV iniciales
-- `install.sh`: Para configurar el servidor
+# Compilar el backend
+npx tsc -p tsconfig.prod.json
+```
 
-## Instrucciones de Uso
+## Paso 5: Configurar Nginx
 
-1. Para construir la aplicación para producción:
-   ```
-   ./build-prod.sh
-   ```
+```bash
+# Copiar archivo de configuración
+sudo cp config/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-available/
 
-2. Para desplegar al VPS directamente:
-   ```
-   ./deploy-to-vps.sh baires 168.231.99.16 /home/baires/apps/presupuestos
-   ```
+# Crear enlace simbólico si no existe
+sudo ln -sf /etc/nginx/sites-available/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-enabled/
 
-3. Para desplegar manualmente:
-   - Construir con `./build-prod.sh`
-   - Transferir contenido de `dist/` al servidor
-   - Seguir instrucciones en README.md dentro de la carpeta dist
+# Verificar configuración
+sudo nginx -t
 
-## Recomendaciones Adicionales
+# Reiniciar Nginx
+sudo systemctl restart nginx
+```
 
-1. **Monitoreo:** Configurar herramientas de monitoreo como PM2 Plus o Grafana
-2. **Backups automáticos:** Implementar respaldos automatizados de la base de datos
-3. **CI/CD:** Considerar implementar un pipeline de integración continua
-4. **Pruebas:** Agregar pruebas automatizadas antes del despliegue
-5. **Logs:** Implementar rotación de logs y almacenamiento centralizado
+## Paso 6: Configurar PM2 para gestionar la aplicación
+
+```bash
+# Instalar PM2 globalmente si no está instalado
+sudo npm install -g pm2
+
+# Iniciar la aplicación con PM2
+pm2 start ecosystem.config.js
+
+# Configurar para que PM2 inicie con el sistema
+pm2 startup
+pm2 save
+```
+
+## Paso 7: Solución de problemas
+
+Si encuentras problemas, puedes verificar los logs:
+
+```bash
+# Ver logs de la aplicación
+pm2 logs presupuestos-app
+
+# Ver logs de Nginx
+sudo tail -f /var/log/nginx/error.log
+```
+
+## Actualizaciones futuras
+
+Para actualizaciones futuras, solo necesitarás:
+
+1. Transferir los archivos actualizados
+2. Reconstruir la aplicación (frontend y backend)
+3. Reiniciar la aplicación: `pm2 restart presupuestos-app`
