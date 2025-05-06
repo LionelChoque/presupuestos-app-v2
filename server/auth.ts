@@ -242,7 +242,7 @@ export function setupAuth(app: Express) {
   });
 
   // API para administradores
-  app.get("/api/users", isAdmin, async (req, res) => {
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       // Eliminar contraseñas antes de enviar
@@ -370,7 +370,7 @@ export function setupAuth(app: Express) {
   });
 
   // Estadísticas de usuario para dashboard
-  app.get("/api/users/stats", isAdmin, async (req, res) => {
+  app.get("/api/admin/stats", isAdmin, async (req, res) => {
     try {
       const stats = await storage.getUserStats();
       res.json(stats);

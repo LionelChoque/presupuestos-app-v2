@@ -5,8 +5,11 @@ import { z } from 'zod';
 import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
 import { readFileSync } from 'fs';
 import path from 'path';
+import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth';
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configurar autenticación
+  setupAuth(app);
   // Get all budgets
   app.get('/api/budgets', async (req, res) => {
     try {
@@ -44,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a budget
-  app.patch('/api/budgets/:id', async (req, res) => {
+  app.patch('/api/budgets/:id', isAuthenticated, async (req, res) => {
     try {
       const updateSchema = insertBudgetSchema.partial();
       const validatedData = updateSchema.safeParse(req.body);
