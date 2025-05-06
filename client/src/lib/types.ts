@@ -9,12 +9,16 @@ export interface BudgetStageHistoryItem {
   etapa: string;
   fecha: string;
   comentario?: string;
+  usuario?: string;
+  usuarioId?: number;
 }
 
 export interface BudgetActionHistoryItem {
   accion: string;
   fecha: string;
   comentario?: string;
+  usuario?: string;
+  usuarioId?: number;
 }
 
 export interface Budget {
@@ -44,6 +48,11 @@ export interface Budget {
   contacto?: ContactInfo;
   historialEtapas?: BudgetStageHistoryItem[];
   historialAcciones?: BudgetActionHistoryItem[];
+  // Nuevos campos para registro de usuario y temporalidad
+  fechaAccion?: string;
+  usuarioAsignado?: number;
+  ultimoUsuario?: number;
+  fechaUltimaActualizacion?: string;
 }
 
 export interface ContactInfo {

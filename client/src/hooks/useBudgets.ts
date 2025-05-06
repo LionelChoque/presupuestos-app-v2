@@ -162,9 +162,30 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
+      const currentDate = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      // Crear nuevo item de historial para la acción de guardar notas
+      const newAction: BudgetActionHistoryItem = {
+        accion: 'Actualización de notas',
+        fecha: currentDate,
+        comentario: 'Se actualizaron las notas del presupuesto',
+        usuario: user ? user.username : undefined,
+        usuarioId: user ? user.id : undefined
+      };
+      
+      // Añadir al historial existente o crear un nuevo array
+      const updatedActionHistory = [
+        ...(budgetToUpdate.historialAcciones || []),
+        newAction
+      ];
+      
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
-        notas: notes
+        notas: notes,
+        historialAcciones: updatedActionHistory,
+        fechaAccion: currentDate,
+        ultimoUsuario: user ? user.id : undefined,
+        fechaUltimaActualizacion: currentDate
       });
       
       toast({
@@ -187,11 +208,15 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
-      // Crear nuevo item de historial para la acción
+      const currentDate = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      // Crear nuevo item de historial para la acción incluyendo usuario
       const newAction: BudgetActionHistoryItem = {
         accion: newStatus ? 'Acción completada' : 'Acción reabierta',
-        fecha: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
-        comentario: newStatus ? `Se completó la acción "${budgetToUpdate.accion}"` : `Se reabrió la acción "${budgetToUpdate.accion}"`
+        fecha: currentDate,
+        comentario: newStatus ? `Se completó la acción "${budgetToUpdate.accion}"` : `Se reabrió la acción "${budgetToUpdate.accion}"`,
+        usuario: user ? user.username : undefined,
+        usuarioId: user ? user.id : undefined
       };
       
       // Añadir al historial existente o crear un nuevo array
@@ -203,8 +228,10 @@ export function useBudgets() {
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
         completado: newStatus,
-        fechaCompletado: newStatus ? new Date().toISOString().split('T')[0] : undefined,
-        historialAcciones: updatedActionHistory
+        fechaCompletado: newStatus ? currentDate : undefined,
+        historialAcciones: updatedActionHistory,
+        fechaAccion: currentDate,
+        usuarioAsignado: user ? user.id : undefined
       });
     }
   };
@@ -218,7 +245,44 @@ export function useBudgets() {
       [budgetId]: data
     }));
     
-    await saveContactMutation.mutateAsync({ budgetId, data });
+    // Incluir información del usuario que hace la actualización
+    const contactData = {
+      budgetId,
+      ...data,
+      usuarioId: user ? user.id : undefined,
+      username: user ? user.username : undefined
+    };
+    
+    await saveContactMutation.mutateAsync({ budgetId, data: contactData });
+    
+    // Actualizar también el presupuesto para registrar la última actividad
+    const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
+    if (budgetToUpdate) {
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Crear nuevo item de historial para la acción de actualizar contacto
+      const newAction: BudgetActionHistoryItem = {
+        accion: 'Actualización de contacto',
+        fecha: currentDate,
+        comentario: `Se actualizó la información de contacto: ${data.nombre}`,
+        usuario: user ? user.username : undefined,
+        usuarioId: user ? user.id : undefined
+      };
+      
+      // Añadir al historial existente o crear un nuevo array
+      const updatedActionHistory = [
+        ...(budgetToUpdate.historialAcciones || []),
+        newAction
+      ];
+      
+      await updateBudgetMutation.mutateAsync({
+        ...budgetToUpdate,
+        historialAcciones: updatedActionHistory,
+        fechaAccion: currentDate,
+        ultimoUsuario: user ? user.id : undefined,
+        fechaUltimaActualizacion: currentDate
+      });
+    }
     
     toast({
       title: 'Contacto guardado',
@@ -234,11 +298,13 @@ export function useBudgets() {
     if (budgetToUpdate) {
       const currentDate = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
       
-      // Crear nuevo item de historial para la acción de finalización
+      // Crear nuevo item de historial para la acción de finalización con usuario
       const newAction: BudgetActionHistoryItem = {
         accion: `Presupuesto ${status}`,
         fecha: currentDate,
-        comentario: `El presupuesto ha sido ${status === 'Aprobado' ? 'aprobado' : 'rechazado'}`
+        comentario: `El presupuesto ha sido ${status === 'Aprobado' ? 'aprobado' : 'rechazado'}`,
+        usuario: user ? user.username : undefined,
+        usuarioId: user ? user.id : undefined
       };
       
       // Añadir al historial existente o crear un nuevo array
@@ -253,7 +319,9 @@ export function useBudgets() {
         fechaEstado: currentDate,
         finalizado: true,
         fechaFinalizado: currentDate,
-        historialAcciones: updatedActionHistory
+        historialAcciones: updatedActionHistory,
+        ultimoUsuario: user ? user.id : undefined, // Registrar el último usuario que actualizó
+        fechaUltimaActualizacion: currentDate // Registrar la fecha de última actualización
       });
       
       setIsBudgetDetailsOpen(false);
@@ -271,9 +339,30 @@ export function useBudgets() {
     
     const budgetToUpdate = budgets.find((b: Budget) => b.id === budgetId);
     if (budgetToUpdate) {
+      const currentDate = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+      
+      // Crear nuevo item de historial para la acción de cambio de tipo
+      const newAction: BudgetActionHistoryItem = {
+        accion: `Cambio de tipo a ${isLicitacion ? 'Licitación' : 'Presupuesto Estándar'}`,
+        fecha: currentDate,
+        comentario: `El tipo de presupuesto ha sido cambiado a ${isLicitacion ? 'Licitación' : 'Presupuesto Estándar'}`,
+        usuario: user ? user.username : undefined,
+        usuarioId: user ? user.id : undefined
+      };
+      
+      // Añadir al historial existente o crear un nuevo array
+      const updatedActionHistory = [
+        ...(budgetToUpdate.historialAcciones || []),
+        newAction
+      ];
+      
       await updateBudgetMutation.mutateAsync({
         ...budgetToUpdate,
-        esLicitacion: isLicitacion
+        esLicitacion: isLicitacion,
+        historialAcciones: updatedActionHistory,
+        fechaAccion: currentDate,
+        ultimoUsuario: user ? user.id : undefined,
+        fechaUltimaActualizacion: currentDate
       });
       
       toast({
