@@ -136,7 +136,7 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
             const items: BudgetItem[] = rows.map(row => ({
               codigo: row.Codigo_Producto,
               descripcion: row.Descripcion,
-              precio: parseFloat(row.NetoItems_USD.replace(',', '.')) * 100 || 0, // Convert to cents
+              precio: row.NetoItems_USD.replace(',', '.'), // Mantener como string para consistencia con el servidor
               cantidad: parseInt(row.Cantidad) || 1
             }));
             
