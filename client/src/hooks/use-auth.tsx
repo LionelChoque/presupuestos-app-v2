@@ -109,11 +109,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      // Limpiar el caché completo de React Query
+      queryClient.clear();
+      
+      // Establecer el usuario como null
       queryClient.setQueryData(["/api/auth/user"], null);
+      
+      // Mostrar notificación
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
       });
+      
+      // La redirección ocurrirá automáticamente por ProtectedRoute
+      // al detectar que el usuario es null
+      window.location.href = "/auth";
     },
     onError: (error: Error) => {
       toast({
