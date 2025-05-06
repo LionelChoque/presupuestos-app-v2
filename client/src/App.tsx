@@ -13,6 +13,9 @@ import TaskList from '@/pages/TaskList';
 import Reports from '@/pages/Reports';
 import NotFound from "@/pages/not-found";
 import { useBudgets } from '@/hooks/useBudgets';
+import { AuthProvider } from '@/hooks/use-auth';
+import AuthPage from '@/pages/auth-page';
+import ProtectedRoute from '@/lib/protected-route';
 
 function App() {
   const [location, setLocation] = useLocation();
@@ -57,31 +60,47 @@ function App() {
         <Switch>
           <Route 
             path="/" 
-            component={() => <Dashboard budgets={budgets} isLoading={isLoading} />}
+            component={() => (
+              <ProtectedRoute>
+                <Dashboard budgets={budgets as any} isLoading={isLoading} />
+              </ProtectedRoute>
+            )}
           />
           <Route 
             path="/budgets" 
             component={() => (
-              <BudgetList 
-                budgets={budgets} 
-                isLoading={isLoading} 
-                onOpenBudgetDetails={openBudgetDetails} 
-              />
+              <ProtectedRoute>
+                <BudgetList 
+                  budgets={budgets as any} 
+                  isLoading={isLoading} 
+                  onOpenBudgetDetails={openBudgetDetails} 
+                />
+              </ProtectedRoute>
             )}
           />
           <Route 
             path="/tasks" 
             component={() => (
-              <TaskList 
-                budgets={budgets} 
-                isLoading={isLoading} 
-                completedTasks={completedTasks} 
-                onToggleTask={toggleTask} 
-                onOpenBudgetDetails={openBudgetDetails} 
-              />
+              <ProtectedRoute>
+                <TaskList 
+                  budgets={budgets as any} 
+                  isLoading={isLoading} 
+                  completedTasks={completedTasks} 
+                  onToggleTask={toggleTask} 
+                  onOpenBudgetDetails={openBudgetDetails} 
+                />
+              </ProtectedRoute>
             )}
           />
-          <Route path="/reports" component={Reports} />
+          <Route 
+            path="/reports" 
+            component={() => (
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            )}
+          />
+          <Route path="/auth" component={AuthPage} />
           <Route component={NotFound} />
         </Switch>
       </Layout>
