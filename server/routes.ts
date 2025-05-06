@@ -205,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.user.id, 
           "import_csv", 
           `Usuario ${req.user.username} importó CSV con ${result.added} nuevos, ${result.updated} actualizados, ${result.deleted} eliminados`,
-          undefined,
+          "manual_csv",
           { ...options, totalRecords: result.total }
         );
       }
@@ -271,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.user.id, 
           "import_demo", 
           `Usuario ${req.user.username} importó CSV de demostración con ${result.added} nuevos, ${result.updated} actualizados, ${result.deleted} eliminados`,
-          null,
+          "demo_csv",
           { ...options, totalRecords: result.total }
         );
       }

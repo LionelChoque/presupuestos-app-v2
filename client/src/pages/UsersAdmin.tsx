@@ -108,23 +108,70 @@ export default function UsersAdmin() {
   // Manejar envío del formulario de nuevo usuario
   const handleNewUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí iría la lógica para crear un nuevo usuario
-    // ...
-
-    // Cerrar el diálogo y refrescar la lista
-    setIsNewUserDialogOpen(false);
-    refetchUsers();
-    refetchStats();
+    
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newUserData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al crear usuario');
+      }
+      
+      // Resetear el formulario
+      setNewUserData({
+        username: "",
+        password: "",
+        email: "",
+        nombre: "",
+        apellido: "",
+        rol: "user",
+      });
+      
+      // Cerrar el diálogo y refrescar la lista
+      setIsNewUserDialogOpen(false);
+      refetchUsers();
+      refetchStats();
+      
+      // Mostrar mensaje de éxito (se podría implementar un sistema de notificaciones)
+      alert('Usuario creado correctamente');
+    } catch (error) {
+      console.error('Error al crear usuario:', error);
+      alert(error instanceof Error ? error.message : 'Error al crear usuario');
+    }
   };
 
   // Manejar cambio de estado activo/inactivo de un usuario
   const handleUserStatusChange = async (userId: number, isActive: boolean) => {
-    // Aquí iría la lógica para cambiar el estado de un usuario
-    // ...
-
-    // Refrescar la lista
-    refetchUsers();
-    refetchStats();
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ activo: isActive }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al actualizar estado del usuario');
+      }
+      
+      // Refrescar la lista
+      refetchUsers();
+      refetchStats();
+      
+      // Notificar éxito (se podría mejorar con sistema de notificaciones)
+      alert(`El usuario ha sido ${isActive ? 'activado' : 'desactivado'} correctamente`);
+    } catch (error) {
+      console.error('Error al cambiar estado del usuario:', error);
+      alert(error instanceof Error ? error.message : 'Error al actualizar estado del usuario');
+    }
   };
 
   // Renderizar tabla de usuarios
