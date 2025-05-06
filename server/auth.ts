@@ -175,15 +175,16 @@ export function setupAuth(app: Express) {
 
       // Registrar actividad (si no es el primer usuario)
       if (req.user) {
+        const currentUser = req.user as any;
         await logUserActivity(
-          req.user.id,
+          currentUser.id,
           "user_create",
-          `Usuario ${req.user.username} creó un nuevo usuario: ${username}`,
+          `Usuario ${currentUser.username} creó un nuevo usuario: ${username}`,
           String(user.id)
         );
       }
 
-      req.login(user, (err) => {
+      req.login(user as any, (err: any) => {
         if (err) return next(err);
         // Enviar la respuesta sin la contraseña
         const { password, ...userWithoutPassword } = user;
@@ -201,7 +202,7 @@ export function setupAuth(app: Express) {
       if (!user) {
         return res.status(401).json({ message: "Credenciales incorrectas" });
       }
-      req.login(user, (err: any) => {
+      req.login(user as any, (err: any) => {
         if (err) return next(err);
         // Enviar la respuesta sin la contraseña
         const { password, ...userWithoutPassword } = user;
@@ -231,7 +232,8 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "No autenticado" });
     }
     // Enviar la respuesta sin la contraseña
-    const { password, ...userWithoutPassword } = req.user;
+    const user = req.user as any;
+    const { password, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   });
 
@@ -259,16 +261,17 @@ export function setupAuth(app: Express) {
   app.patch("/api/users/:id", isAuthenticated, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const user = req.user as any; // Ya sabemos que existe porque usamos isAuthenticated
       
       // Verificar permisos (solo administradores pueden editar otros usuarios)
-      if (userId !== req.user.id && req.user.rol !== "admin") {
+      if (userId !== user.id && user.rol !== "admin") {
         return res.status(403).json({ message: "No autorizado para editar este usuario" });
       }
       
       const userData = { ...req.body };
       
       // Solo los administradores pueden cambiar roles
-      if (userData.rol && req.user.rol !== "admin") {
+      if (userData.rol && user.rol !== "admin") {
         delete userData.rol;
       }
       
@@ -281,9 +284,9 @@ export function setupAuth(app: Express) {
       
       // Registrar la actividad
       await logUserActivity(
-        req.user.id,
+        user.id,
         "user_update",
-        `Usuario ${req.user.username} actualizó los datos de usuario: ${updatedUser.username}`,
+        `Usuario ${user.username} actualizó los datos de usuario: ${updatedUser.username}`,
         String(userId)
       );
       
@@ -300,9 +303,10 @@ export function setupAuth(app: Express) {
   app.delete("/api/users/:id", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const adminUser = req.user as any; // Ya sabemos que existe porque usamos isAdmin
       
       // No permitir que un administrador se elimine a sí mismo
-      if (userId === req.user.id) {
+      if (userId === adminUser.id) {
         return res.status(400).json({ message: "No puede eliminar su propia cuenta" });
       }
       
@@ -316,9 +320,9 @@ export function setupAuth(app: Express) {
       
       // Registrar la actividad
       await logUserActivity(
-        req.user.id,
+        adminUser.id,
         "user_delete",
-        `Usuario ${req.user.username} desactivó la cuenta de usuario: ${user.username}`,
+        `Usuario ${adminUser.username} desactivó la cuenta de usuario: ${user.username}`,
         String(userId)
       );
       
@@ -347,9 +351,10 @@ export function setupAuth(app: Express) {
   app.get("/api/users/:id/activities", isAuthenticated, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const currentUser = req.user as any; // Ya sabemos que existe porque usamos isAuthenticated
       
       // Verificar permisos (solo administradores pueden ver actividades de otros usuarios)
-      if (userId !== req.user.id && req.user.rol !== "admin") {
+      if (userId !== currentUser.id && currentUser.rol !== "admin") {
         return res.status(403).json({ message: "No autorizado para ver actividades de este usuario" });
       }
       

@@ -220,14 +220,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const valueWithId = {
-      ...insertBudget,
-      id: insertBudget.id || Date.now().toString()
+    // Asegurar que el presupuesto tenga un ID
+    const budgetWithId: any = {
+      ...insertBudget
     };
+    
+    // Si no tiene ID, generamos uno basado en timestamp
+    if (!budgetWithId.id) {
+      budgetWithId.id = Date.now().toString();
+    }
     
     const [budget] = await db
       .insert(budgets)
-      .values(valueWithId)
+      .values(budgetWithId)
       .returning();
     
     return budget as Budget;
@@ -316,7 +321,8 @@ export class DatabaseStorage implements IStorage {
       const existingBudgets = await this.getAllBudgets();
       
       // Compare with existing budgets
-      const compareResult = compareBudgets(existingBudgets, newBudgets, options);
+      // Usamos as any para evitar problemas de tipos durante la comparación
+      const compareResult = compareBudgets(existingBudgets as any, newBudgets as any, options);
       
       // Process budgets to add or update
       for (const budget of newBudgets) {
@@ -325,15 +331,16 @@ export class DatabaseStorage implements IStorage {
         
         if (existingBudget) {
           // Update existing budget, preserving user-entered data
+          // Usamos as any para resolver problemas de tipos temporalmente
           await this.updateBudget(budget.id, {
-            ...budget,
+            ...(budget as any),
             notas: existingBudget.notas,
             completado: existingBudget.completado,
             estado: existingBudget.estado,
           });
         } else {
           // Create new budget
-          await this.createBudget(budget);
+          await this.createBudget(budget as any);
         }
         
         // Process budget items
