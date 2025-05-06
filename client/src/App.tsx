@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -19,7 +19,7 @@ import UsersAdmin from '@/pages/UsersAdmin';
 import ProtectedRoute from '@/lib/protected-route';
 
 function App() {
-  const [location, setLocation] = useLocation();
+  // Eliminamos useLocation ya que estaba causando problemas
   const {
     budgets,
     isLoading,
@@ -49,11 +49,6 @@ function App() {
     changeBudgetType,
     advanceBudgetStage
   } = useBudgets();
-
-  // If no route is active, redirect to dashboard
-  if (location === '/') {
-    setLocation('/');
-  }
 
   return (
     <TooltipProvider>
