@@ -54,7 +54,7 @@ import fs from 'fs';
 
 // Configuración de ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 // Importar rutas y configuración
 import { registerRoutes } from './server/routes.js';
