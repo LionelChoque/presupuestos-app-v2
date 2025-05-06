@@ -1,0 +1,29 @@
+baires@srv812122:~/apps/presupuestos$ # Ver el estado de las aplicaciones en PM2
+pm2 list
+
+# Ver los logs de la aplicación
+pm2 logs presupuestos-app --lines 100
+┌────┬─────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼─────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ presupuestos-app    │ default     │ 1.0.0   │ cluster │ 351700   │ 0      │ 18   │ ▒▒ │ 0%       │ 0b       │ baires   │ disabled │
+└────┴─────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[TAILING] Tailing last 100 lines for [presupuestos-app] process (change the value with --lines option)
+/home/baires/.pm2/logs/presupuestos-app-out-0.log last 100 lines:
+/home/baires/.pm2/logs/presupuestos-app-error-0.log last 100 lines:
+0|presupuestos-app  | (node:351731) Warning: To load an ES module, set "type": "module" in the package.json or use the .mjs extension.
+0|presupuestos-app  | (Use `node --trace-warnings ...` to show where the warning was created)
+0|presupuestos-app  | /home/baires/apps/presupuestos/dist/index.js:8
+0|presupuestos-app  | import express2 from "express";
+0|presupuestos-app  | ^^^^^^
+0|presupuestos-app  | SyntaxError: Cannot use import statement outside a module
+0|presupuestos-app  |     at internalCompileFunction (node:internal/vm:73:18)
+0|presupuestos-app  |     at wrapSafe (node:internal/modules/cjs/loader:1274:20)
+0|presupuestos-app  |     at Module._compile (node:internal/modules/cjs/loader:1320:27)
+0|presupuestos-app  |     at Module._extensions..js (node:internal/modules/cjs/loader:1414:10)
+0|presupuestos-app  |     at Module.load (node:internal/modules/cjs/loader:1197:32)
+0|presupuestos-app  |     at Module._load (node:internal/modules/cjs/loader:1013:12)
+0|presupuestos-app  |     at /usr/local/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+0|presupuestos-app  |     at wrapper (/usr/local/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+0|presupuestos-app  |     at next (/usr/local/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+0|presupuestos-app  |     at /usr/local/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
