@@ -1,4 +1,4 @@
-import Papa from 'papaparse';
+import Papa, { ParseError, ParseResult } from 'papaparse';
 import { Budget, BudgetItem, CsvBudgetRow, ImportOptions, ImportResult } from './types';
 
 // Group the items by budget ID
@@ -115,7 +115,7 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
   return new Promise((resolve, reject) => {
     Papa.parse<CsvBudgetRow>(csvData, {
       header: true,
-      complete: (results) => {
+      complete: (results: ParseResult<CsvBudgetRow>) => {
         try {
           const budgetMap = groupItemsByBudget(results.data);
           const budgets: Budget[] = [];
@@ -162,7 +162,7 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
               descuento: parseInt(firstRow.Descuento) || 0,
               validez: parseInt(firstRow.Validez) || 0,
               items,
-              montoTotal: montoTotal * 100, // Convert to cents
+              montoTotal: montoTotal.toFixed(2).toString(), // Mantener como string para consistencia con el servidor
               diasTranscurridos,
               diasRestantes,
               tipoSeguimiento,
@@ -182,7 +182,7 @@ export function convertCsvToBudgets(csvData: string): Promise<Budget[]> {
           reject(error);
         }
       },
-      error: (error) => {
+      error: (error: Error) => {
         reject(error);
       }
     });
