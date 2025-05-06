@@ -66,11 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: AuthUser) => {
+      // Actualizar el estado del usuario en caché
       queryClient.setQueryData(["/api/auth/user"], user);
+      
+      // Mostrar notificación
       toast({
         title: "Inicio de sesión exitoso",
         description: `Bienvenido/a ${user.nombre || user.username}`,
       });
+      
+      // Redirigir al dashboard después de inicio de sesión exitoso
+      // Usar window.location para asegurar una recarga completa
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
@@ -88,11 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: AuthUser) => {
+      // Actualizar el estado del usuario en caché
       queryClient.setQueryData(["/api/auth/user"], user);
+      
+      // Mostrar notificación
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente",
       });
+      
+      // Redirigir al dashboard después de registro exitoso
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
