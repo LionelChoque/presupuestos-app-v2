@@ -1,7 +1,7 @@
 export interface BudgetItem {
   codigo: string;
   descripcion: string;
-  precio: number;
+  precio: string; // Cambiado de number a string para ser consistente con el servidor
   cantidad?: number;
 }
 
@@ -26,7 +26,7 @@ export interface Budget {
   descuento?: number;
   validez?: number;
   items?: BudgetItem[];
-  montoTotal: number;
+  montoTotal: string; // Cambiado de number a string para ser consistente con el servidor
   diasTranscurridos?: number;
   diasRestantes: number;
   tipoSeguimiento: string;
