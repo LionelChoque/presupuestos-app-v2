@@ -1,17 +1,28 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User, InsertUser, InsertUserActivity } from "@shared/schema";
+import { User as SchemaUser, InsertUser, InsertUserActivity } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      email?: string;
+      nombre?: string;
+      apellido?: string;
+      rol: string;
+      fechaCreacion?: Date;
+      ultimoAcceso?: Date;
+      activo: boolean;
+    }
   }
 }
 
@@ -40,9 +51,14 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 
 // Middleware para verificar rol de administrador
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated() && req.user?.rol === "admin") {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "No autenticado" });
+  }
+  
+  if (req.user && (req.user as any).rol === "admin") {
     return next();
   }
+  
   res.status(403).json({ message: "No autorizado" });
 }
 
@@ -93,25 +109,42 @@ export function setupAuth(app: Express) {
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
         } else {
-          // Actualizar último acceso
-          await storage.updateUser(user.id, { ultimoAcceso: new Date() });
-          // Registrar actividad
-          await logUserActivity(user.id, "login", `Usuario ${username} ha iniciado sesión`);
-          return done(null, user);
+          try {
+            // Actualizar último acceso
+            await storage.updateUser(user.id, { 
+              // Nota: ultimoAcceso se define en el schema y convertimos a Date
+              ultimoAcceso: new Date() 
+            } as any);
+            
+            // Registrar actividad
+            await logUserActivity(user.id, "login", `Usuario ${username} ha iniciado sesión`);
+            
+            // Devolver el usuario para la sesión
+            return done(null, user as any);
+          } catch (updateErr) {
+            console.error("Error al actualizar acceso:", updateErr);
+            // Aún así autenticamos si falla la actualización
+            return done(null, user as any);
+          }
         }
       } catch (err) {
+        console.error("Error en autenticación:", err);
         return done(err);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user: any, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      done(null, user);
+      if (!user) {
+        return done(null, false);
+      }
+      done(null, user as any);
     } catch (err) {
-      done(err);
+      console.error("Error al deserializar usuario:", err);
+      done(err, null);
     }
   });
 
@@ -163,12 +196,12 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: "Credenciales incorrectas" });
       }
-      req.login(user, (err) => {
+      req.login(user, (err: any) => {
         if (err) return next(err);
         // Enviar la respuesta sin la contraseña
         const { password, ...userWithoutPassword } = user;
