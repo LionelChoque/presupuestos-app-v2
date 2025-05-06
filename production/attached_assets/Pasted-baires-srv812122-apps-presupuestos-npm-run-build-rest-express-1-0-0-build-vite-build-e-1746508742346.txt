@@ -1,0 +1,48 @@
+baires@srv812122:~/apps/presupuestos$ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+✘ [ERROR] Top-level await is currently not supported with the "cjs" output format
+
+    vite.config.ts:13:10:
+      13 │           await import("@replit/vite-plugin-cartographer").then((m) =>
+         ╵           ~~~~~
+
+failed to load config from /home/baires/apps/presupuestos/vite.config.ts
+error during build:
+Error: Build failed with 1 error:
+vite.config.ts:13:10: ERROR: Top-level await is currently not supported with the "cjs" output format
+    at failureErrorWithLog (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+    at /home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:945:25
+    at runOnEndCallbacks (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:1315:45)
+    at buildResponseToResult (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:943:7)
+    at /home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:970:16
+    at responseCallbacks.<computed> (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/baires/apps/presupuestos/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:517:28)
+    at addChunk (node:internal/streams/readable:368:12)
+baires@srv812122:~/apps/presupuestos$ ^C
+baires@srv812122:~/apps/presupuestos$ pm2 start ecosystem.config.cjs
+[PM2] Applying action restartProcessId on app [presupuestos-app](ids: [ 0 ])
+[PM2][ERROR] Process 0 not found
+Process 0 not found
+/usr/local/lib/node_modules/pm2/lib/API.js:1719
+        acted.push(proc.pm2_env ? proc.pm2_env.pm_id : proc.pm_id)
+                        ^
+
+TypeError: Cannot read properties of undefined (reading 'pm2_env')
+    at /usr/local/lib/node_modules/pm2/lib/API.js:1719:25
+    at Array.forEach (<anonymous>)
+    at API.speedList (/usr/local/lib/node_modules/pm2/lib/API.js:1718:18)
+    at /usr/local/lib/node_modules/pm2/lib/binaries/CLI.js:308:15
+    at wrapper (/usr/local/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at replenish (/usr/local/lib/node_modules/pm2/node_modules/async/internal/eachOfLimit.js:76:25)
+    at iterateeCallback (/usr/local/lib/node_modules/pm2/node_modules/async/internal/eachOfLimit.js:65:17)
+    at /usr/local/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at /usr/local/lib/node_modules/pm2/lib/binaries/CLI.js:299:11
+    at /usr/local/lib/node_modules/pm2/lib/API.js:330:21
+
+Node.js v18.19.1
+baires@srv812122:~/apps/presupuestos$
