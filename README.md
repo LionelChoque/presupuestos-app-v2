@@ -162,85 +162,11 @@ pg_restore -U presupuestos_user -d presupuestos_db -c backup_presupuestos_YYYYMM
 
 ## Solución de Problemas Comunes
 
-### Script de diagnóstico rápido
-Para verificar rápidamente el estado de todos los servicios y obtener sugerencias:
-```
-./check-service.sh
-```
-
-Este script revisará el estado de Nginx, PostgreSQL y PM2, mostrará los logs recientes y ofrecerá opciones para resolver problemas comunes.
-
-### Problema: Error 502 Bad Gateway
-Este error indica que Nginx no puede conectar con la aplicación Node.js. 
-
-**Solución automática:**
-Ejecuta el script de corrección automática que solucionará los problemas comunes:
-
-```bash
-cd /home/baires/apps/presupuestos
-chmod +x fix-deployment.sh
-./fix-deployment.sh
-```
-
-Este script:
-- Crea el archivo `.env` si no existe
-- Verifica que exista un archivo `index.js` para producción
-- Ajusta la configuración de PM2
-- Reinicia los servicios
-- Libera memoria del sistema
-
-**Solución manual:**
-Si prefieres resolver el problema manualmente:
-
-1. Verificar si la aplicación está en ejecución:
-   ```
-   pm2 list
-   ```
-
-2. Si la aplicación no está en ejecución o muestra status "errored":
-   ```
-   pm2 logs presupuestos-app
-   ```
-   
-3. Verificar que existe el archivo index.js:
-   ```
-   ls -la index.js
-   ```
-   
-   Si no existe, busca el archivo principal y crea un enlace:
-   ```
-   find . -maxdepth 1 -name "*.js" | grep -v node_modules
-   ln -sf NOMBRE_ARCHIVO.js index.js
-   ```
-   
-4. Asegúrate de que existe el archivo .env:
-   ```
-   echo 'NODE_ENV=production
-PORT=5000
-DATABASE_URL=postgresql://presupuestos_user:CONTRASEÑA@localhost:5432/presupuestos_db' > .env
-   ```
-
-5. Reiniciar la aplicación con la configuración cjs:
-   ```
-   pm2 delete all
-   NODE_ENV=production pm2 start ecosystem.config.cjs
-   ```
-
-6. Verificar que está escuchando en el puerto correcto:
-   ```
-   sudo netstat -tulpn | grep :5000
-   ```
-
 ### Problema: La aplicación no arranca
 Verifica los logs:
 ```
 pm2 logs presupuestos-app
 ```
-
-Problemas comunes:
-- **Error de sintaxis**: Revisa los archivos de configuración
-- **Error de dependencias**: Ejecuta `npm install` nuevamente
-- **Error de conexión a base de datos**: Verifica credenciales y estado de PostgreSQL
 
 ### Problema: Error de conexión a la base de datos
 Verifica que la base de datos esté funcionando:
@@ -248,12 +174,7 @@ Verifica que la base de datos esté funcionando:
 sudo systemctl status postgresql
 ```
 
-Prueba la conexión:
-```
-sudo -u postgres psql -d presupuestos_db -c "SELECT 1"
-```
-
-Comprueba las credenciales en ecosystem.config.js y .env
+Comprueba las credenciales en ecosystem.config.js.
 
 ### Problema: La aplicación no es accesible desde el navegador
 1. Verifica que Nginx esté funcionando:
@@ -263,15 +184,7 @@ Comprueba las credenciales en ecosystem.config.js y .env
 
 2. Comprueba los logs de Nginx:
    ```
-   sudo tail -f /var/log/nginx/presupuestos.error.log
+   sudo tail -f /var/log/nginx/error.log
    ```
 
-3. Verifica la configuración de Nginx:
-   ```
-   sudo nginx -t
-   ```
-
-4. Asegúrate de que los puertos necesarios estén abiertos en el firewall:
-   ```
-   sudo ufw status
-   ```
+3. Asegúrate de que los puertos necesarios estén abiertos en el firewall.
