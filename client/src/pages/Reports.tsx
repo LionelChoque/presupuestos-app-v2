@@ -86,7 +86,9 @@ export default function Reports() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = report.titulo.replace(/\s+/g, '_') + '.' + report.formato;
+        // Asegurar que usamos la extensión correcta según el formato
+        const extension = report.formato === 'excel' ? 'xlsx' : report.formato;
+        a.download = report.titulo.replace(/\s+/g, '_') + '.' + extension;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
