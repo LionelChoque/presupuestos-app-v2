@@ -18,6 +18,7 @@ export type AuthUser = {
   fechaCreacion?: string;
   ultimoAcceso?: string;
   activo: boolean;
+  aprobado: boolean;
 };
 
 // Tipo para los datos de login
@@ -62,8 +63,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Mutación para el login
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/auth/login", credentials);
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/auth/login", credentials);
+        
+        // Si la respuesta no es exitosa, manejar el error
+        if (!res.ok) {
+          const errorData = await res.json();
+          
+          // Lanzar error con mensaje específico si está disponible
+          throw new Error(errorData.message || 'Error al iniciar sesión');
+        }
+        
+        return await res.json();
+      } catch (error) {
+        // Re-lanzar el error para que sea capturado por onError
+        throw error;
+      }
     },
     onSuccess: (user: AuthUser) => {
       // Actualizar el estado del usuario en caché
@@ -80,9 +95,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = "/";
     },
     onError: (error: Error) => {
+      let errorMessage = error.message;
+      
+      // Personalizar mensajes para casos específicos
+      if (errorMessage.includes('aprobada')) {
+        errorMessage = "Tu cuenta aún no ha sido aprobada por un administrador. Por favor, espera la aprobación o contacta con soporte.";
+      } else if (errorMessage === 'Credenciales incorrectas') {
+        errorMessage = "El nombre de usuario o contraseña son incorrectos. Por favor, verifica tus datos.";
+      }
+      
       toast({
         title: "Error al iniciar sesión",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -91,17 +115,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Mutación para el registro
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
-      const res = await apiRequest("POST", "/api/auth/register", userData);
-      return await res.json();
+      try {
+        const res = await apiRequest("POST", "/api/auth/register", userData);
+        
+        // Si la respuesta no es exitosa, manejar el error
+        if (!res.ok) {
+          const errorData = await res.json();
+          
+          // Lanzar error con mensaje específico si está disponible
+          throw new Error(errorData.message || 'Error al registrarse');
+        }
+        
+        return await res.json();
+      } catch (error) {
+        // Re-lanzar el error para que sea capturado por onError
+        throw error;
+      }
     },
     onSuccess: (user: AuthUser) => {
       // Actualizar el estado del usuario en caché
       queryClient.setQueryData(["/api/auth/user"], user);
       
-      // Mostrar notificación
+      let description = "Tu cuenta ha sido creada correctamente";
+      
+      // Si el usuario no es administrador y no está aprobado automáticamente,
+      // mostrar mensaje de espera de aprobación
+      if (user.rol !== 'admin' && !user.aprobado) {
+        description = "Tu cuenta ha sido creada, pero requiere aprobación de un administrador antes de poder acceder al sistema.";
+        
+        // En este caso, redirigir a la página de auth
+        toast({
+          title: "Registro pendiente de aprobación",
+          description,
+          duration: 10000, // Duración más larga para este mensaje importante
+        });
+        
+        // Cerrar sesión automáticamente para que espere aprobación
+        logoutMutation.mutate();
+        return;
+      }
+      
+      // Normal flow para usuarios ya aprobados (administradores o creados por admin)
       toast({
         title: "Registro exitoso",
-        description: "Tu cuenta ha sido creada correctamente",
+        description,
       });
       
       // Redirigir al dashboard después de registro exitoso
