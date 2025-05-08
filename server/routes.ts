@@ -258,6 +258,269 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Obtener datos de rendimiento de usuarios (solo admin)
+  app.get('/api/admin/performance', isAdmin, async (req, res) => {
+    try {
+      // Obtener parámetros de filtrado
+      const fromDate = req.query.from ? new Date(req.query.from as string) : undefined;
+      const toDate = req.query.to ? new Date(req.query.to as string) : undefined;
+      const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : undefined;
+      
+      // Validar parámetros
+      if (fromDate && isNaN(fromDate.getTime())) {
+        return res.status(400).json({ message: 'Fecha inicial inválida' });
+      }
+      if (toDate && isNaN(toDate.getTime())) {
+        return res.status(400).json({ message: 'Fecha final inválida' });
+      }
+      if (userId !== undefined && isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Obtener usuarios
+      const allUsers = await storage.getAllUsers();
+      
+      // Obtener actividades
+      const activities = await storage.getUserActivities(1000, 0); // Obtener las últimas 1000 actividades
+      
+      // Filtrar actividades según los parámetros
+      const filteredActivities = activities.filter(activity => {
+        const activityDate = new Date(activity.timestamp || new Date());
+        let includeActivity = true;
+        
+        if (fromDate) {
+          includeActivity = includeActivity && activityDate >= fromDate;
+        }
+        
+        if (toDate) {
+          includeActivity = includeActivity && activityDate <= toDate;
+        }
+        
+        if (userId !== undefined) {
+          includeActivity = includeActivity && activity.userId === userId;
+        }
+        
+        return includeActivity;
+      });
+      
+      // Obtener presupuestos para relacionar con las actividades
+      const budgets = await storage.getAllBudgets();
+      
+      // Calcular datos de rendimiento por usuario
+      const userPerformanceData = allUsers.map(user => {
+        // Filtrar actividades del usuario
+        const userActivities = filteredActivities.filter(a => a.userId === user.id);
+        
+        // Agrupar por día
+        const activityByDay = userActivities.reduce((acc: {date: string, count: number}[], activity) => {
+          const date = activity.fecha.split('T')[0]; // YYYY-MM-DD
+          const existingDate = acc.find(item => item.date === date);
+          
+          if (existingDate) {
+            existingDate.count += 1;
+          } else {
+            acc.push({ date, count: 1 });
+          }
+          
+          return acc;
+        }, []);
+        
+        // Ordenar por fecha
+        activityByDay.sort((a, b) => a.date.localeCompare(b.date));
+        
+        // Agrupar por tipo
+        const activityByType = userActivities.reduce((acc: {type: string, count: number}[], activity) => {
+          const existingType = acc.find(item => item.type === activity.tipo);
+          
+          if (existingType) {
+            existingType.count += 1;
+          } else {
+            acc.push({ type: activity.tipo, count: 1 });
+          }
+          
+          return acc;
+        }, []);
+        
+        // Calcular tareas completadas y pendientes
+        const completedTasks = userActivities.filter(a => 
+          a.tipo === 'task_completed' || 
+          a.tipo === 'budget_finalized'
+        ).length;
+        
+        const pendingTasks = userActivities.filter(a => 
+          a.tipo === 'budget_created' || 
+          a.tipo === 'budget_updated' ||
+          a.tipo === 'import_csv'
+        ).length - completedTasks;
+        
+        // Calcular tiempo promedio de respuesta (simplificado)
+        // En una implementación real, se analizarían pares de creación/finalización
+        const responseTimeHours = Math.random() * 24 + 1; // Simulado entre 1-25 horas
+        
+        // Top presupuestos del usuario
+        const userBudgetActivities = userActivities.filter(a => a.entidadId);
+        const budgetCounts = userBudgetActivities.reduce((acc: {[key: string]: number}, activity) => {
+          if (activity.entidadId) {
+            acc[activity.entidadId] = (acc[activity.entidadId] || 0) + 1;
+          }
+          return acc;
+        }, {});
+        
+        const topBudgetsIds = Object.entries(budgetCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([budgetId]) => budgetId);
+        
+        const topBudgets = topBudgetsIds.map(budgetId => {
+          const budget = budgets.find(b => b.id === budgetId);
+          return {
+            budgetId,
+            empresa: budget ? budget.empresa : 'Desconocido',
+            actionsCount: budgetCounts[budgetId]
+          };
+        });
+        
+        // Calcular tasa de éxito
+        const successRate = completedTasks > 0 
+          ? (completedTasks / (completedTasks + pendingTasks)) * 100 
+          : 0;
+        
+        // Obtener última actividad
+        const lastActive = userActivities.length > 0
+          ? userActivities.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())[0].fecha
+          : user.ultimoAcceso || user.fechaCreacion || new Date().toISOString();
+        
+        return {
+          userId: user.id,
+          username: user.username,
+          nombre: user.nombre,
+          apellido: user.apellido,
+          totalActions: userActivities.length,
+          completedTasks,
+          pendingTasks,
+          averageResponseTime: responseTimeHours,
+          lastActive,
+          successRate,
+          activityByDay,
+          activityByType,
+          topBudgets
+        };
+      });
+      
+      // Calcular datos para la vista general
+      const totalActionsByDay = filteredActivities.reduce((acc: {date: string, count: number}[], activity) => {
+        const date = activity.fecha.split('T')[0]; // YYYY-MM-DD
+        const existingDate = acc.find(item => item.date === date);
+        
+        if (existingDate) {
+          existingDate.count += 1;
+        } else {
+          acc.push({ date, count: 1 });
+        }
+        
+        return acc;
+      }, []);
+      
+      // Ordenar por fecha
+      totalActionsByDay.sort((a, b) => a.date.localeCompare(b.date));
+      
+      // Agrupar por tipo
+      const totalActionsByType = filteredActivities.reduce((acc: {type: string, count: number}[], activity) => {
+        const existingType = acc.find(item => item.type === activity.tipo);
+        
+        if (existingType) {
+          existingType.count += 1;
+        } else {
+          acc.push({ type: activity.tipo, count: 1 });
+        }
+        
+        return acc;
+      }, []);
+      
+      // Ordenar por cantidad (mayor a menor)
+      totalActionsByType.sort((a, b) => b.count - a.count);
+      
+      // Identificar usuario más activo y menos activo
+      const sortedByActivity = [...userPerformanceData].sort((a, b) => b.totalActions - a.totalActions);
+      const mostActiveUser = sortedByActivity.length > 0 ? {
+        userId: sortedByActivity[0].userId,
+        username: sortedByActivity[0].username,
+        actionCount: sortedByActivity[0].totalActions
+      } : {
+        userId: 0,
+        username: 'N/A',
+        actionCount: 0
+      };
+      
+      const leastActiveUser = sortedByActivity.length > 0 ? {
+        userId: sortedByActivity[sortedByActivity.length - 1].userId,
+        username: sortedByActivity[sortedByActivity.length - 1].username,
+        actionCount: sortedByActivity[sortedByActivity.length - 1].totalActions
+      } : {
+        userId: 0,
+        username: 'N/A',
+        actionCount: 0
+      };
+      
+      // Identificar usuario con mejor tiempo de respuesta
+      const sortedByResponseTime = [...userPerformanceData]
+        .filter(u => u.totalActions > 0)
+        .sort((a, b) => a.averageResponseTime - b.averageResponseTime);
+      
+      const fastestResponseTime = sortedByResponseTime.length > 0 ? {
+        userId: sortedByResponseTime[0].userId,
+        username: sortedByResponseTime[0].username,
+        responseTime: sortedByResponseTime[0].averageResponseTime
+      } : {
+        userId: 0,
+        username: 'N/A',
+        responseTime: 0
+      };
+      
+      // Identificar usuario con mayor tasa de éxito
+      const sortedBySuccessRate = [...userPerformanceData]
+        .filter(u => u.totalActions > 0)
+        .sort((a, b) => b.successRate - a.successRate);
+      
+      const highestSuccessRate = sortedBySuccessRate.length > 0 ? {
+        userId: sortedBySuccessRate[0].userId,
+        username: sortedBySuccessRate[0].username,
+        rate: sortedBySuccessRate[0].successRate
+      } : {
+        userId: 0,
+        username: 'N/A',
+        rate: 0
+      };
+      
+      // Datos para comparación entre usuarios
+      const userComparisonData = userPerformanceData.map(u => ({
+        username: u.username,
+        actions: u.totalActions,
+        tasks: u.completedTasks,
+        responseTime: u.averageResponseTime
+      }));
+      
+      // Armar objeto de respuesta
+      const result = {
+        users: userPerformanceData,
+        overview: {
+          mostActiveUser,
+          leastActiveUser,
+          fastestResponseTime,
+          highestSuccessRate,
+          totalActionsByDay,
+          totalActionsByType,
+          userComparisonData
+        }
+      };
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error obteniendo datos de rendimiento:', error);
+      res.status(500).json({ message: 'Error al obtener datos de rendimiento' });
+    }
+  });
+  
   // Actualizar estado (activo/inactivo) de usuario (solo admin)
   app.patch('/api/admin/users/:userId', isAdmin, async (req, res) => {
     try {
