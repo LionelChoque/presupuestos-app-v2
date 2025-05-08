@@ -147,6 +147,12 @@ export function Layout({ children, onImport }: LayoutProps) {
                           <span>Análisis de desempeño</span>
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/activity">
+                          <Activity className="mr-2 h-4 w-4" />
+                          <span>Registro de actividad</span>
+                        </Link>
+                      </DropdownMenuItem>
                     </>
                   )}
                   <DropdownMenuItem>
