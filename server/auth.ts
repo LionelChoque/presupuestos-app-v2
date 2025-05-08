@@ -22,6 +22,7 @@ declare global {
       fechaCreacion?: Date;
       ultimoAcceso?: Date;
       activo: boolean;
+      aprobado: boolean;
     }
   }
 }
@@ -108,24 +109,29 @@ export function setupAuth(app: Express) {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
-        } else {
-          try {
-            // Actualizar último acceso
-            await storage.updateUser(user.id, { 
-              // Nota: ultimoAcceso se define en el schema y convertimos a Date
-              ultimoAcceso: new Date() 
-            } as any);
-            
-            // Registrar actividad
-            await logUserActivity(user.id, "login", `Usuario ${username} ha iniciado sesión`);
-            
-            // Devolver el usuario para la sesión
-            return done(null, user as any);
-          } catch (updateErr) {
-            console.error("Error al actualizar acceso:", updateErr);
-            // Aún así autenticamos si falla la actualización
-            return done(null, user as any);
-          }
+        } 
+        
+        // Verificar si el usuario está aprobado (excepto para administradores)
+        if (!user.aprobado && user.rol !== 'admin') {
+          return done(null, false, { message: 'Su cuenta aún no ha sido aprobada por un administrador' });
+        }
+        
+        try {
+          // Actualizar último acceso
+          await storage.updateUser(user.id, { 
+            // Nota: ultimoAcceso se define en el schema y convertimos a Date
+            ultimoAcceso: new Date() 
+          } as any);
+          
+          // Registrar actividad
+          await logUserActivity(user.id, "login", `Usuario ${username} ha iniciado sesión`);
+          
+          // Devolver el usuario para la sesión
+          return done(null, user as any);
+        } catch (updateErr) {
+          console.error("Error al actualizar acceso:", updateErr);
+          // Aún así autenticamos si falla la actualización
+          return done(null, user as any);
         }
       } catch (err) {
         console.error("Error en autenticación:", err);
@@ -153,7 +159,8 @@ export function setupAuth(app: Express) {
     try {
       // Verificar si existe administrador al registrar el primer usuario
       const userCount = await storage.getUserCount();
-      const rol = userCount === 0 ? "admin" : "usuario";
+      const isFirstUser = userCount === 0;
+      const rol = isFirstUser ? "admin" : "usuario";
       
       const { username, password, email, nombre, apellido } = req.body;
       
@@ -168,7 +175,11 @@ export function setupAuth(app: Express) {
         email,
         nombre,
         apellido,
-        rol
+        rol,
+        // El primer usuario (admin) está aprobado automáticamente
+        // Los usuarios creados por un admin también están aprobados
+        // Otros usuarios necesitan aprobación
+        aprobado: isFirstUser || (req.user && (req.user as any).rol === 'admin')
       };
 
       const user = await storage.createUser(userData);
@@ -200,7 +211,11 @@ export function setupAuth(app: Express) {
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
-        return res.status(401).json({ message: "Credenciales incorrectas" });
+        // Proporcionar mensaje más específico cuando esté disponible
+        const message = info && info.message 
+          ? info.message 
+          : "Credenciales incorrectas";
+        return res.status(401).json({ message });
       }
       req.login(user as any, (err: any) => {
         if (err) return next(err);
@@ -377,6 +392,49 @@ export function setupAuth(app: Express) {
     } catch (err) {
       console.error("Error al obtener estadísticas de usuarios:", err);
       res.status(500).json({ message: "Error al obtener estadísticas de usuarios" });
+    }
+  });
+
+  // Aprobar o rechazar usuarios (solo administradores)
+  app.patch("/api/admin/users/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const adminUser = req.user as any;
+      const { approved } = req.body;
+      
+      // Verificar tipo de dato
+      if (typeof approved !== 'boolean') {
+        return res.status(400).json({ message: "El parámetro 'approved' debe ser un valor booleano" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // No permitir cambiar el estado de aprobación de un administrador
+      if (user.rol === 'admin') {
+        return res.status(400).json({ message: "No se puede cambiar el estado de aprobación de un administrador" });
+      }
+      
+      // Actualizar estado de aprobación
+      const updatedUser = await storage.updateUser(userId, { aprobado: approved });
+      
+      // Registrar la actividad
+      const action = approved ? 'aprobó' : 'rechazó';
+      await logUserActivity(
+        adminUser.id,
+        "user_approval_change",
+        `Usuario ${adminUser.username} ${action} la cuenta de usuario: ${user.username}`,
+        String(userId)
+      );
+      
+      // Eliminar la contraseña antes de enviar la respuesta
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (err) {
+      console.error("Error al cambiar estado de aprobación del usuario:", err);
+      res.status(500).json({ message: "Error al cambiar estado de aprobación del usuario" });
     }
   });
 }
