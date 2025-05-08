@@ -56,7 +56,12 @@ export default function Reports() {
         title: "Reporte generado con éxito",
         description: "El reporte ha sido generado y guardado para su descarga.",
       });
+      // Invalidar la consulta de forma explícita y forzar una recarga
       queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      // Refrescar la página después de un breve retraso para asegurar que se actualice la UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     },
     onError: (error) => {
       toast({

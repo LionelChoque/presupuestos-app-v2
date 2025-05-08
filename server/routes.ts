@@ -854,8 +854,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         formato: format,
         rutaArchivo: `/reports/${Date.now()}_${type}.${format}`,
         tamano: '120 KB', // Tamaño estimado
-        fechaGeneracion: new Date(),
-        usuarioId: req.user!.id
+        usuarioId: req.user!.id,
+        parametros: { from, to }
       });
       
       // Registrar la actividad
