@@ -2,6 +2,8 @@ import { FC, ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
+import { OnboardingGuide } from "@/components/OnboardingGuide";
+import { ContextualHelp } from "@/components/ContextualHelp";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -41,7 +43,17 @@ export const ProtectedRoute: FC<ProtectedRouteProps> = ({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {/* Guía de Onboarding para nuevos usuarios */}
+      <OnboardingGuide />
+      
+      {/* Ayuda contextual para la navegación */}
+      <ContextualHelp />
+      
+      {children}
+    </>
+  );
 };
 
 export default ProtectedRoute;

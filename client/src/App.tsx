@@ -7,6 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from '@/components/Layout';
 import { ImportModal } from '@/components/ImportModal';
 import { BudgetDetailsModal } from '@/components/BudgetDetailsModal';
+import { OnboardingGuide } from '@/components/OnboardingGuide';
+import { ContextualHelp } from '@/components/ContextualHelp';
+import { WelcomeMessage } from '@/components/WelcomeMessage';
 import Dashboard from '@/pages/Dashboard';
 import BudgetList from '@/pages/BudgetList';
 import TaskList from '@/pages/TaskList';
@@ -136,6 +139,9 @@ function App() {
         isActionCompleted={selectedBudget ? actionStatus[selectedBudget.id] || false : false}
       />
 
+      {/* Mensaje de bienvenida para usuarios recién aprobados */}
+      <WelcomeMessage />
+      
       <Toaster />
     </TooltipProvider>
   );
