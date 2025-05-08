@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ReportData, ReportItem } from '@/lib/types';
-import { DownloadCloud, FileText, File, FileSpreadsheet } from 'lucide-react';
+import { DownloadCloud, FileText, File, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { getQueryFn, apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Reports() {
+  const { toast } = useToast();
   const [reportData, setReportData] = useState<ReportData>({
     type: 'summary',
     from: new Date().toISOString().split('T')[0],
@@ -21,17 +27,64 @@ export default function Reports() {
     format: 'excel'
   });
 
-  // Sample recent reports data
-  const recentReports: ReportItem[] = [
-    { title: 'Resumen General Mayo 2025', format: 'excel', date: '02/05/2025', size: '1.4 MB' },
-    { title: 'Análisis por Fabricante Q1 2025', format: 'pdf', date: '15/04/2025', size: '2.8 MB' },
-    { title: 'Desempeño de Presupuestos Marzo 2025', format: 'excel', date: '02/04/2025', size: '1.2 MB' },
-    { title: 'Análisis por Cliente Q4 2024', format: 'csv', date: '15/01/2025', size: '948 KB' }
-  ];
+  // Obtener los reportes generados
+  const { data: reports, isLoading, isError } = useQuery({
+    queryKey: ['/api/reports'],
+    queryFn: getQueryFn(),
+  });
 
+  // Mutación para generar un nuevo reporte
+  const generateReportMutation = useMutation({
+    mutationFn: async (data: ReportData) => {
+      const response = await apiRequest('POST', '/api/reports/generate', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reporte generado con éxito",
+        description: "El reporte ha sido generado y guardado para su descarga.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al generar el reporte",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutación para descargar un reporte
+  const downloadReportMutation = useMutation({
+    mutationFn: async (reportId: number) => {
+      const response = await apiRequest('GET', `/api/reports/${reportId}/download`);
+      return await response.blob();
+    },
+    onSuccess: (blob, reportId) => {
+      const report = reports?.find((r: any) => r.id === reportId);
+      if (report) {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = report.titulo.replace(/\s+/g, '_') + '.' + report.formato;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error al descargar el reporte",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
   const generateReport = () => {
-    // In a real application, this would call an API to generate the report
-    alert(`Generando reporte de tipo "${reportData.type}" en formato ${reportData.format.toUpperCase()}`);
+    generateReportMutation.mutate(reportData);
   };
 
   return (
@@ -121,39 +174,66 @@ export default function Reports() {
       <Card>
         <CardHeader className="px-5 py-4 border-b border-gray-200">
           <CardTitle className="text-lg font-medium text-gray-900">Reportes Recientes</CardTitle>
+          <CardDescription>
+            Reportes generados previamente que pueden descargarse
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <ul className="divide-y divide-gray-200">
-            {recentReports.map((report, i) => (
-              <li key={i} className="px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`
-                    flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center
-                    ${report.format === 'excel' ? 'bg-green-100' : 
-                    report.format === 'pdf' ? 'bg-red-100' : 'bg-blue-100'}
-                  `}>
-                    {report.format === 'excel' && <FileSpreadsheet className="h-4 w-4 text-green-700" />}
-                    {report.format === 'pdf' && <File className="h-4 w-4 text-red-700" />}
-                    {report.format === 'csv' && <FileText className="h-4 w-4 text-blue-700" />}
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2 text-primary" />
+              <span>Cargando reportes...</span>
+            </div>
+          ) : isError ? (
+            <div className="p-6 text-center text-red-500">
+              Error al cargar los reportes. Por favor, inténtelo de nuevo.
+            </div>
+          ) : !reports || reports.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground">
+              No hay reportes generados. Utilice el formulario superior para crear su primer reporte.
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {reports.map((report: any) => (
+                <li key={report.id} className="px-5 py-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`
+                      flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center
+                      ${report.formato === 'xlsx' || report.formato === 'excel' ? 'bg-green-100' : 
+                      report.formato === 'pdf' ? 'bg-red-100' : 'bg-blue-100'}
+                    `}>
+                      {(report.formato === 'xlsx' || report.formato === 'excel') && 
+                        <FileSpreadsheet className="h-4 w-4 text-green-700" />}
+                      {report.formato === 'pdf' && <File className="h-4 w-4 text-red-700" />}
+                      {report.formato === 'csv' && <FileText className="h-4 w-4 text-blue-700" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{report.titulo}</p>
+                      <p className="text-sm text-gray-500">
+                        <span>
+                          {format(new Date(report.fechaGeneracion), 'dd/MM/yyyy', { locale: es })}
+                        </span> · <span>{report.tamano}</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{report.title}</p>
-                    <p className="text-sm text-gray-500">
-                      <span>{report.date}</span> · <span>{report.size}</span>
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:text-primary-900 text-sm font-medium flex items-center space-x-1"
-                >
-                  <DownloadCloud className="h-4 w-4 mr-1" />
-                  <span>Descargar</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary hover:text-primary-900 text-sm font-medium flex items-center space-x-1"
+                    onClick={() => downloadReportMutation.mutate(report.id)}
+                    disabled={downloadReportMutation.isPending}
+                  >
+                    {downloadReportMutation.isPending && downloadReportMutation.variables === report.id ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <DownloadCloud className="h-4 w-4 mr-1" />
+                    )}
+                    <span>Descargar</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

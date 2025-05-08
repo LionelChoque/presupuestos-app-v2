@@ -83,6 +83,20 @@ export const importLogs = pgTable("import_logs", {
   recordsDeleted: integer("records_deleted").default(0),
 });
 
+// Tabla para reportes generados
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  titulo: text("titulo").notNull(),
+  tipo: text("tipo").notNull(), // summary, performance, manufacturer, client
+  fechaGeneracion: timestamp("fecha_generacion").defaultNow(),
+  formato: text("formato").notNull(), // excel, pdf, csv
+  tamano: text("tamano").notNull(),
+  rutaArchivo: text("ruta_archivo").notNull(),
+  usuarioId: integer("usuario_id").references(() => users.id),
+  parametros: jsonb("parametros").$type<Record<string, any>>(),
+  esPublico: boolean("es_publico").default(true),
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -112,6 +126,11 @@ export const insertImportLogSchema = createInsertSchema(importLogs).omit({
   timestamp: true,
 });
 
+export const insertReportSchema = createInsertSchema(reports).omit({
+  id: true,
+  fechaGeneracion: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -130,3 +149,6 @@ export type ImportLog = typeof importLogs.$inferSelect;
 
 export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 export type UserActivity = typeof userActivities.$inferSelect;
+
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Report = typeof reports.$inferSelect;
