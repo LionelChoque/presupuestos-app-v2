@@ -69,27 +69,30 @@ export function Layout({ children, onImport }: LayoutProps) {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button
-              onClick={onImport}
-              size="sm"
-              className="flex items-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            {/* Mostrar el botón Importar CSV solo si el usuario está autenticado y no está en la página de auth */}
+            {user && location !== '/auth' && (
+              <Button
+                onClick={onImport}
+                size="sm"
+                className="flex items-center"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              Importar CSV
-            </Button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                Importar CSV
+              </Button>
+            )}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -166,81 +169,87 @@ export function Layout({ children, onImport }: LayoutProps) {
 
       {/* Main Content */}
       <div className="flex flex-1">
-        {/* Desktop Sidebar */}
-        <div className="hidden md:flex md:flex-shrink-0">
-          <div className="flex flex-col w-64 bg-white border-r border-gray-200">
-            <div className="h-0 flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <nav className="mt-5 flex-1 px-2 space-y-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={item.id}
-                    className={`
-                      group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer
-                      ${
-                        location === item.id
-                          ? 'bg-primary-50 text-primary-700'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                    `}
-                  >
-                    <span className="mr-3 h-5 w-5">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-              </nav>
+        {/* Desktop Sidebar - Solo mostrar si no es la página de autenticación */}
+        {location !== '/auth' && (
+          <div className="hidden md:flex md:flex-shrink-0">
+            <div className="flex flex-col w-64 bg-white border-r border-gray-200">
+              <div className="h-0 flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+                <nav className="mt-5 flex-1 px-2 space-y-1">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.id}
+                      className={`
+                        group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer
+                        ${
+                          location === item.id
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      <span className="mr-3 h-5 w-5">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </nav>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Mobile menu overlay */}
-        {mobileMenuOpen && (
+        {/* Mobile menu overlay - Solo mostrar si no es la página de autenticación */}
+        {location !== '/auth' && mobileMenuOpen && (
           <div
             className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
-        {/* Mobile menu */}
-        <div className={`fixed inset-y-0 left-0 z-40 w-full bg-white md:hidden transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
-          <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
-            <div className="text-primary-800 font-semibold">Sistema de Seguimiento</div>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-gray-500"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-          <nav className="mt-2 px-4 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.id}
-                className={`
-                  group flex items-center px-2 py-3 text-base font-medium rounded-md
-                  ${
-                    location === item.id
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }
-                `}
+        {/* Mobile menu - Solo mostrar si no es la página de autenticación */}
+        {location !== '/auth' && (
+          <div className={`fixed inset-y-0 left-0 z-40 w-full bg-white md:hidden transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
+            <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+              <div className="text-primary-800 font-semibold">Sistema de Seguimiento</div>
+              <button
                 onClick={() => setMobileMenuOpen(false)}
+                className="text-gray-500"
               >
-                <span className="mr-4 h-6 w-6">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-        </div>
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <nav className="mt-2 px-4 space-y-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.id}
+                  className={`
+                    group flex items-center px-2 py-3 text-base font-medium rounded-md
+                    ${
+                      location === item.id
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }
+                  `}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="mr-4 h-6 w-6">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
 
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="fixed bottom-4 right-4 z-20 p-2 rounded-full bg-primary text-white shadow-lg md:hidden"
-        >
-          <Menu className="h-6 w-6" />
-        </button>
+        {/* Mobile menu button - Solo mostrar si no es la página de autenticación */}
+        {location !== '/auth' && (
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="fixed bottom-4 right-4 z-20 p-2 rounded-full bg-primary text-white shadow-lg md:hidden"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        )}
 
         {/* Content area */}
         <div className="flex-1 overflow-auto">
