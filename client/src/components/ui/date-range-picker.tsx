@@ -1,28 +1,28 @@
-import * as React from "react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import * as React from "react"
+import { format } from "date-fns"
+import { es } from "date-fns/locale"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { DateRange } from "react-day-picker"
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 
 interface DatePickerWithRangeProps {
-  className?: string;
-  value: DateRange;
-  onChange: (date: DateRange) => void;
+  value: DateRange | undefined
+  onChange: (date: DateRange) => void
+  className?: string
 }
 
 export function DatePickerWithRange({
-  className,
   value,
   onChange,
+  className,
 }: DatePickerWithRangeProps) {
   return (
     <div className={cn("grid gap-2", className)}>
@@ -40,14 +40,15 @@ export function DatePickerWithRange({
             {value?.from ? (
               value.to ? (
                 <>
-                  {format(value.from, "LLL dd, y", { locale: es })} -{" "}
-                  {format(value.to, "LLL dd, y", { locale: es })}
+                  {format(value.from, "dd/MM/yyyy", { locale: es })}
+                  {" - "}
+                  {format(value.to, "dd/MM/yyyy", { locale: es })}
                 </>
               ) : (
-                format(value.from, "LLL dd, y", { locale: es })
+                format(value.from, "dd/MM/yyyy", { locale: es })
               )
             ) : (
-              <span>Seleccionar rango de fechas</span>
+              <span>Seleccionar fechas</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -57,12 +58,12 @@ export function DatePickerWithRange({
             mode="range"
             defaultMonth={value?.from}
             selected={value}
-            onSelect={(range) => onChange(range as DateRange)}
+            onSelect={(range) => range && onChange(range)}
             numberOfMonths={2}
             locale={es}
           />
         </PopoverContent>
       </Popover>
     </div>
-  );
+  )
 }

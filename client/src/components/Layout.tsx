@@ -11,6 +11,7 @@ import {
   Settings,
   User,
   X,
+  Activity,
 } from 'lucide-react';
 import {
   DropdownMenu,
