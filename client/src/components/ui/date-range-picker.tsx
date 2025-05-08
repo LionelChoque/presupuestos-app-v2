@@ -57,7 +57,7 @@ export function DatePickerWithRange({
             mode="range"
             defaultMonth={value?.from}
             selected={value}
-            onSelect={onChange}
+            onSelect={(range) => onChange(range as DateRange)}
             numberOfMonths={2}
             locale={es}
           />
