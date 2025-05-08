@@ -181,7 +181,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Registrarse</CardTitle>
                   <CardDescription>
-                    Crea una cuenta para acceder al sistema
+                    Crea una cuenta para acceder al sistema. Las cuentas nuevas requieren aprobación administrativa antes de poder acceder.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
