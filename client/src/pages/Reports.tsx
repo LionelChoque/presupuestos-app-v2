@@ -27,14 +27,26 @@ export default function Reports() {
     format: 'excel'
   });
 
+  // Tipo para los reportes de la API
+  interface ApiReport {
+    id: number;
+    titulo: string;
+    tipo: string;
+    fechaGeneracion: string;
+    formato: string;
+    tamano: string;
+    rutaArchivo: string;
+    usuarioId: number;
+  }
+
   // Obtener los reportes generados
-  const { data: reports, isLoading, isError } = useQuery({
+  const { data: reports, isLoading, isError } = useQuery<ApiReport[]>({
     queryKey: ['/api/reports'],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
   });
 
   // Mutación para generar un nuevo reporte
-  const generateReportMutation = useMutation({
+  const generateReportMutation = useMutation<ApiReport, Error, ReportData>({
     mutationFn: async (data: ReportData) => {
       const response = await apiRequest('POST', '/api/reports/generate', data);
       return await response.json();
@@ -56,13 +68,15 @@ export default function Reports() {
   });
 
   // Mutación para descargar un reporte
-  const downloadReportMutation = useMutation({
+  const downloadReportMutation = useMutation<Blob, Error, number>({
     mutationFn: async (reportId: number) => {
       const response = await apiRequest('GET', `/api/reports/${reportId}/download`);
       return await response.blob();
     },
     onSuccess: (blob, reportId) => {
-      const report = reports?.find((r: any) => r.id === reportId);
+      if (!reports) return;
+      
+      const report = reports.find((r) => r.id === reportId);
       if (report) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -194,7 +208,7 @@ export default function Reports() {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {reports.map((report: any) => (
+              {reports.map((report) => (
                 <li key={report.id} className="px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`
