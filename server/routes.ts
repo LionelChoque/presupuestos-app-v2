@@ -261,6 +261,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Obtener datos de rendimiento de usuarios (solo admin)
   app.get('/api/admin/performance', isAdmin, async (req, res) => {
     try {
+      console.log("Iniciando procesamiento de rendimiento");
+      
       // Obtener parámetros de filtrado
       const fromDate = req.query.from ? new Date(req.query.from as string) : undefined;
       const toDate = req.query.to ? new Date(req.query.to as string) : undefined;
@@ -277,39 +279,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'ID de usuario inválido' });
       }
       
+      console.log(`Filtros aplicados - Desde: ${fromDate?.toISOString() || 'N/A'}, 
+                   Hasta: ${toDate?.toISOString() || 'N/A'}, 
+                   Usuario: ${userId || 'todos'}`);
+                   
       // Obtener usuarios
       const allUsers = await storage.getAllUsers();
+      console.log(`Usuarios obtenidos: ${allUsers.length}`);
       
       // Obtener actividades
       const activities = await storage.getUserActivities(1000, 0); // Obtener las últimas 1000 actividades
+      console.log(`Actividades obtenidas: ${activities.length}`);
       
-      // Logs detallados para depuración
-      console.log("Actividades obtenidas total:", activities.length);
-      
-      if (activities.length > 0) {
-        // Imprimir un ejemplo de actividad y sus propiedades
-        const sampleActivity = activities[0];
-        console.log("Ejemplo de actividad:", {
-          id: sampleActivity.id,
-          userId: sampleActivity.userId,
-          tipo: sampleActivity.tipo,
-          timestamp: sampleActivity.timestamp,
-          timestamp_type: typeof sampleActivity.timestamp,
-          timestamp_json: JSON.stringify(sampleActivity.timestamp),
-          completa: JSON.stringify(sampleActivity)
+      // Si no hay actividades, devolver un objeto de respuesta vacío pero bien estructurado
+      if (activities.length === 0) {
+        console.log('No hay actividades para procesar');
+        return res.json({
+          users: [],
+          overview: {
+            mostActiveUser: { userId: 0, username: 'N/A', actionCount: 0 },
+            leastActiveUser: { userId: 0, username: 'N/A', actionCount: 0 },
+            fastestResponseTime: { userId: 0, username: 'N/A', responseTime: 0 },
+            highestSuccessRate: { userId: 0, username: 'N/A', rate: 0 },
+            totalActionsByDay: [],
+            totalActionsByType: [],
+            userComparisonData: []
+          }
         });
-      } else {
-        console.log("No hay actividades registradas.");
       }
       
-      // Filtrar actividades según los parámetros
-      const filteredActivities = activities.filter(activity => {
-        // Convertir el timestamp (que podría ser un string o un objeto Date) a objeto Date
-        const activityTimestamp = activity.timestamp instanceof Date 
+      // Logs detallados para depuración
+      const sampleActivity = activities[0];
+      console.log("Ejemplo de actividad:", {
+        id: sampleActivity.id,
+        userId: sampleActivity.userId,
+        tipo: sampleActivity.tipo,
+        timestamp: sampleActivity.timestamp,
+        timestamp_type: typeof sampleActivity.timestamp,
+        timestamp_json: JSON.stringify(sampleActivity.timestamp),
+        completa: JSON.stringify(sampleActivity)
+      });
+      
+      // Convertir todos los timestamps a objetos Date para evitar errores
+      const activitiesWithValidDates = activities.map(activity => ({
+        ...activity,
+        timestamp: activity.timestamp instanceof Date 
           ? activity.timestamp 
           : typeof activity.timestamp === 'string' 
             ? new Date(activity.timestamp) 
-            : new Date();
+            : new Date()
+      }));
+      
+      console.log("Timestamps procesados para todas las actividades");
+      
+      // Filtrar actividades según los parámetros
+      const filteredActivities = activitiesWithValidDates.filter(activity => {
+        const activityTimestamp = activity.timestamp; // Ya es un objeto Date
         
         let includeActivity = true;
         
