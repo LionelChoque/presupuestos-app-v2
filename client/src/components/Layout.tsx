@@ -134,12 +134,20 @@ export function Layout({ children, onImport }: LayoutProps) {
                     <span>Mi perfil</span>
                   </DropdownMenuItem>
                   {user.rol === 'admin' && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/users">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Gestionar usuarios</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/users">
+                          <Users className="mr-2 h-4 w-4" />
+                          <span>Gestionar usuarios</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/performance">
+                          <BarChart className="mr-2 h-4 w-4" />
+                          <span>Análisis de desempeño</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />

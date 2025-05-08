@@ -19,6 +19,7 @@ import { useBudgets } from '@/hooks/useBudgets';
 import { AuthProvider } from '@/hooks/use-auth';
 import AuthPage from '@/pages/auth-page';
 import UsersAdmin from '@/pages/UsersAdmin';
+import UserPerformance from '@/pages/UserPerformance';
 import ProtectedRoute from '@/lib/protected-route';
 
 function App() {
@@ -104,6 +105,14 @@ function App() {
             component={() => (
               <ProtectedRoute adminOnly>
                 <UsersAdmin />
+              </ProtectedRoute>
+            )}
+          />
+          <Route 
+            path="/admin/performance" 
+            component={() => (
+              <ProtectedRoute adminOnly>
+                <UserPerformance />
               </ProtectedRoute>
             )}
           />
