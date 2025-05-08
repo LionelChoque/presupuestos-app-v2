@@ -283,17 +283,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Obtener actividades
       const activities = await storage.getUserActivities(1000, 0); // Obtener las últimas 1000 actividades
       
+      // Log para depuración
+      console.log("Actividades obtenidas:", activities.slice(0, 2));
+      
       // Filtrar actividades según los parámetros
       const filteredActivities = activities.filter(activity => {
-        const activityDate = new Date(activity.timestamp || new Date());
+        // Convertir el timestamp (que podría ser un string o un objeto Date) a objeto Date
+        const activityTimestamp = activity.timestamp instanceof Date 
+          ? activity.timestamp 
+          : typeof activity.timestamp === 'string' 
+            ? new Date(activity.timestamp) 
+            : new Date();
+        
         let includeActivity = true;
         
         if (fromDate) {
-          includeActivity = includeActivity && activityDate >= fromDate;
+          includeActivity = includeActivity && activityTimestamp >= fromDate;
         }
         
         if (toDate) {
-          includeActivity = includeActivity && activityDate <= toDate;
+          includeActivity = includeActivity && activityTimestamp <= toDate;
         }
         
         if (userId !== undefined) {
