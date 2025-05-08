@@ -855,7 +855,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rutaArchivo: `/reports/${Date.now()}_${type}.${format}`,
         tamano: '120 KB', // Tamaño estimado
         usuarioId: req.user!.id,
-        parametros: { from, to }
+        parametros: {
+          dateRange: [from, to],
+          reportType: [type],
+          format: [format]
+        }
       });
       
       // Registrar la actividad
@@ -891,26 +895,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Para este ejemplo, generamos un contenido simple según el formato
       let fileContent;
       let contentType;
+      let extension;
       
       switch (report.formato) {
         case 'excel':
           // En un sistema real se generaría un archivo Excel
-          fileContent = Buffer.from('Contenido simulado de Excel');
-          contentType = 'application/vnd.ms-excel';
+          fileContent = Buffer.from('PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000[Content_Types].xml\u00ad\u0090\u00cdN\u00c20\u0010\u0000\u00ef\u00e2+\u0096H\u00a2\u00ad\u0088\u00aa\u00f0\u00000\u0089 \b\u0088\u0097\u00db\u00ddv%m\u0092\u00c4\u00db\u00edE\u00fe\u00fb\u00b6\u0087V\u00e1\u0092\u00f3\u00ce\u0099\u00ef\u00cc\u00e4\u00c3\u00db\u00baL\u00b6\u0088U\u0081\u0012\u00f3\u00ees\u0092\u00c0\u00b0@\u00f3\u0012\u00c6\u00f3\u00b9\u00fd\u00bc{\u0090\u00b4\u0089\u00865l\u00c8p*\u00e1b>W\'E\u00f2\u00be\u00c8\r\u00b8\u0000\u00cc\u0006\u00e2\u0085\u0081\u0095\u00df|\u00fa\u0081\u0096\u00aaS\u00f7\u00d6\u00d5\u00aex\u00c6r\u00fa\u000f\u00c3\u00af\u00f2\u00c9\u00e8\u00e8L\u00e0\u00fdA\u00fbW|\u00e1\u00a9\u00d4\u00bb\'\u00ea\u00cd\u001bg~b\u00af\u0091\u00fe\u00c3<\u00f9\u00f9V\u0018\u0094\u0096\"\u00d8\u00c3\u00fc\u00c5]G\u00fdf\u00e9A\r\u00f89\u00ce\u0084\u0019 \u00d0\u00b9\u00af>\u00c2\u00bec\u00ee\u00ef\u00a3\u0093\u00a2\u009a\u00e2\u00ac\u00bd\u001ew/\u00ebR\u0090\u00c3\u00d1\u00c1{\u00f3\u0000\u0000PK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000[Content_Types].xmlPK\u0005\u0006\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000A\u0000\u0000\u0000N\u0000\u0000\u0000\u0000\u0000');
+          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          extension = 'xlsx';
           break;
         case 'pdf':
-          // En un sistema real se generaría un PDF
-          fileContent = Buffer.from('Contenido simulado de PDF');
+          // Crear un PDF válido con contenido mínimo
+          fileContent = Buffer.from('%PDF-1.5\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<<>>/Contents 4 0 R>>\nendobj\n4 0 obj\n<</Length 44>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Reporte generado) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000212 00000 n\ntrailer\n<</Size 5/Root 1 0 R>>\nstartxref\n304\n%%EOF\n');
           contentType = 'application/pdf';
+          extension = 'pdf';
           break;
         case 'csv':
           // En un sistema real se generaría un CSV
-          fileContent = Buffer.from('id,nombre,valor\n1,prueba,100\n2,prueba2,200');
+          fileContent = Buffer.from('id,empresa,monto,estado\n1,RIZOBACTER ARGENTINA S.A.,12500.00,Pendiente\n2,ROLANPLAST SRL,8750.50,Aprobado\n3,SINFONIA AGROALIMENTARIA SRL,15000.00,Rechazado\n');
           contentType = 'text/csv';
+          extension = 'csv';
           break;
         default:
           fileContent = Buffer.from('Contenido no válido');
           contentType = 'text/plain';
+          extension = 'txt';
       }
       
       // Registrar la actividad de descarga
@@ -923,7 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Enviar el archivo
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${report.titulo.replace(/\s+/g, '_')}.${report.formato}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${report.titulo.replace(/\s+/g, '_')}.${extension}"`);
       res.send(fileContent);
     } catch (error) {
       console.error('Error descargando reporte:', error);
