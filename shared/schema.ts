@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   fechaCreacion: timestamp("fecha_creacion").defaultNow(),
   ultimoAcceso: timestamp("ultimo_acceso"),
   activo: boolean("activo").default(true),
+  aprobado: boolean("aprobado").default(false), // Nuevo campo: por defecto los usuarios no están aprobados
 });
 
 // Tabla para registrar actividades de los usuarios
