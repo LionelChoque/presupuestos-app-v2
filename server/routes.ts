@@ -283,8 +283,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Obtener actividades
       const activities = await storage.getUserActivities(1000, 0); // Obtener las últimas 1000 actividades
       
-      // Log para depuración
-      console.log("Actividades obtenidas:", activities.slice(0, 2));
+      // Logs detallados para depuración
+      console.log("Actividades obtenidas total:", activities.length);
+      
+      if (activities.length > 0) {
+        // Imprimir un ejemplo de actividad y sus propiedades
+        const sampleActivity = activities[0];
+        console.log("Ejemplo de actividad:", {
+          id: sampleActivity.id,
+          userId: sampleActivity.userId,
+          tipo: sampleActivity.tipo,
+          timestamp: sampleActivity.timestamp,
+          timestamp_type: typeof sampleActivity.timestamp,
+          timestamp_json: JSON.stringify(sampleActivity.timestamp),
+          completa: JSON.stringify(sampleActivity)
+        });
+      } else {
+        console.log("No hay actividades registradas.");
+      }
       
       // Filtrar actividades según los parámetros
       const filteredActivities = activities.filter(activity => {
