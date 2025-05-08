@@ -313,7 +313,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Agrupar por día
         const activityByDay = userActivities.reduce((acc: {date: string, count: number}[], activity) => {
-          const date = activity.fecha.split('T')[0]; // YYYY-MM-DD
+          // Usar timestamp o fecha actual
+          const timestamp = activity.timestamp ? new Date(activity.timestamp) : new Date();
+          const date = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
           const existingDate = acc.find(item => item.date === date);
           
           if (existingDate) {
@@ -387,8 +389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Obtener última actividad
         const lastActive = userActivities.length > 0
-          ? userActivities.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())[0].fecha
-          : user.ultimoAcceso || user.fechaCreacion || new Date().toISOString();
+          ? userActivities.sort((a, b) => {
+              const dateA = a.timestamp ? new Date(a.timestamp) : new Date();
+              const dateB = b.timestamp ? new Date(b.timestamp) : new Date();
+              return dateB.getTime() - dateA.getTime();
+            })[0].timestamp?.toISOString() || new Date().toISOString()
+          : user.ultimoAcceso?.toISOString() || user.fechaCreacion?.toISOString() || new Date().toISOString();
         
         return {
           userId: user.id,
@@ -409,7 +415,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calcular datos para la vista general
       const totalActionsByDay = filteredActivities.reduce((acc: {date: string, count: number}[], activity) => {
-        const date = activity.fecha.split('T')[0]; // YYYY-MM-DD
+        // Usar timestamp o fecha actual
+        const timestamp = activity.timestamp ? new Date(activity.timestamp) : new Date();
+        const date = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
         const existingDate = acc.find(item => item.date === date);
         
         if (existingDate) {
