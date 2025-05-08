@@ -1,0 +1,129 @@
+baires@srv812122:/var/www/presupuestos.bairesanalitica.com$ # Compilar el frontend
+npm run build
+
+# Compilar el backend
+npx tsc -p tsconfig.prod.json
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.19 building for production...
+✓ 0 modules transformed.
+x Build failed in 20ms
+error during build:
+Could not resolve entry module "index.html".
+    at getRollupError (file:///var/www/presupuestos.bairesanalitica.com/node_modules/rollup/dist/es/shared/parseAst.js:397:41)
+    at error (file:///var/www/presupuestos.bairesanalitica.com/node_modules/rollup/dist/es/shared/parseAst.js:393:42)
+    at ModuleLoader.loadEntryModule (file:///var/www/presupuestos.bairesanalitica.com/node_modules/rollup/dist/es/shared/node-entry.js:21371:20)
+    at async Promise.all (index 0)
+server/auth.ts:7:25 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './storage.js'?
+
+7 import { storage } from "./storage";
+                          ~~~~~~~~~~~
+
+server/auth.ts:8:68 - error TS2307: Cannot find module '@shared/schema' or its corresponding type declarations.
+
+8 import { User as SchemaUser, InsertUser, InsertUserActivity } from "@shared/schema";
+                                                                     ~~~~~~~~~~~~~~~~
+
+server/auth.ts:10:22 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './db.js'?
+
+10 import { pool } from "./db";
+                        ~~~~~~
+
+server/auth.ts:249:47 - error TS7006: Parameter 'user' implicitly has an 'any' type.
+
+249       const usersWithoutPasswords = users.map(user => {
+                                                  ~~~~
+
+server/db.ts:4:25 - error TS2307: Cannot find module '@shared/schema' or its corresponding type declarations.
+
+4 import * as schema from "@shared/schema";
+                          ~~~~~~~~~~~~~~~~
+
+server/index.ts:2:32 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './routes.js'?
+
+2 import { registerRoutes } from "./routes";
+                                 ~~~~~~~~~~
+
+server/index.ts:3:45 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './vite.js'?
+
+3 import { setupVite, serveStatic, log } from "./vite";
+                                              ~~~~~~~~
+
+server/index.ts:4:27 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './auth.js'?
+
+4 import { setupAuth } from "./auth";
+                            ~~~~~~~~
+
+server/routes.ts:3:25 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './storage.js'?
+
+3 import { storage } from "./storage";
+                          ~~~~~~~~~~~
+
+server/routes.ts:5:61 - error TS2307: Cannot find module '@shared/schema' or its corresponding type declarations.
+
+5 import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
+                                                              ~~~~~~~~~~~~~~~~
+
+server/routes.ts:8:70 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './auth.js'?
+
+8 import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth';
+                                                                       ~~~~~~~~
+
+server/storage.ts:20:8 - error TS2307: Cannot find module '@shared/schema' or its corresponding type declarations.
+
+20 } from "@shared/schema";
+          ~~~~~~~~~~~~~~~~
+
+server/storage.ts:21:53 - error TS2834: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Consider adding an extension to the import path.
+
+21 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
+                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+server/storage.ts:22:20 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './db.js'?
+
+22 import { db } from "./db";
+                      ~~~~~~
+
+server/storage.ts:180:44 - error TS7006: Parameter 'a' implicitly has an 'any' type.
+
+180     const userIdsList = activitiesData.map(a => a.userId);
+                                               ~
+
+server/storage.ts:194:50 - error TS7006: Parameter 'a' implicitly has an 'any' type.
+
+194     const userActivityStats = activitiesData.map(a => ({
+                                                     ~
+
+server/storage.ts:381:53 - error TS7006: Parameter 'b' implicitly has an 'any' type.
+
+381         const newBudgetIds = new Set(newBudgets.map(b => b.id));
+                                                        ~
+
+server/vite.ts:6:24 - error TS2307: Cannot find module '../vite.config' or its corresponding type declarations.
+
+6 import viteConfig from "../vite.config";
+                         ~~~~~~~~~~~~~~~~
+
+shared/utils.ts:2:48 - error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean './schema.js'?
+
+2 import { InsertBudget, InsertBudgetItem } from './schema';
+                                                 ~~~~~~~~~~
+
+shared/utils.ts:47:15 - error TS7006: Parameter 'error' implicitly has an 'any' type.
+
+47       error: (error) => {
+                 ~~~~~
+
+
+Found 20 errors in 7 files.
+
+Errors  Files
+     4  server/auth.ts:7
+     1  server/db.ts:4
+     3  server/index.ts:2
+     3  server/routes.ts:3
+     6  server/storage.ts:20
+     1  server/vite.ts:6
+     2  shared/utils.ts:2
