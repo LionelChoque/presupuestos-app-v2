@@ -45,6 +45,7 @@ interface User {
   fechaCreacion: string;
   ultimoAcceso?: string;
   activo: boolean;
+  aprobado: boolean;
 }
 
 // Tipo para la actividad de usuario
@@ -173,6 +174,34 @@ export default function UsersAdmin() {
       alert(error instanceof Error ? error.message : 'Error al actualizar estado del usuario');
     }
   };
+  
+  // Manejar cambio de estado de aprobación de un usuario
+  const handleUserApprovalChange = async (userId: number, isApproved: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ approved: isApproved }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al actualizar estado de aprobación del usuario');
+      }
+      
+      // Refrescar la lista
+      refetchUsers();
+      refetchStats();
+      
+      // Notificar éxito (se podría mejorar con sistema de notificaciones)
+      alert(`El usuario ha sido ${isApproved ? 'aprobado' : 'desaprobado'} correctamente`);
+    } catch (error) {
+      console.error('Error al cambiar estado de aprobación del usuario:', error);
+      alert(error instanceof Error ? error.message : 'Error al actualizar estado de aprobación del usuario');
+    }
+  };
 
   // Renderizar tabla de usuarios
   const renderUsersTable = () => {
@@ -203,6 +232,7 @@ export default function UsersAdmin() {
             <TableHead>Email</TableHead>
             <TableHead>Rol</TableHead>
             <TableHead>Estado</TableHead>
+            <TableHead>Aprobado</TableHead>
             <TableHead>Último acceso</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
@@ -232,6 +262,23 @@ export default function UsersAdmin() {
                     }
                   />
                   <span>{user.activo ? "Activo" : "Inactivo"}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  {user.rol !== 'admin' ? (
+                    <>
+                      <Switch
+                        checked={user.aprobado}
+                        onCheckedChange={(checked) =>
+                          handleUserApprovalChange(user.id, checked)
+                        }
+                      />
+                      <span>{user.aprobado ? "Aprobado" : "Pendiente"}</span>
+                    </>
+                  ) : (
+                    <Badge variant="outline">Administrador</Badge>
+                  )}
                 </div>
               </TableCell>
               <TableCell>
