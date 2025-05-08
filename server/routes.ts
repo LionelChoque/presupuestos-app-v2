@@ -258,6 +258,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Obtener registro de actividades (solo admin)
+  app.get('/api/activities', isAdmin, async (req, res) => {
+    try {
+      console.log('Procesando solicitud de actividades');
+      // Obtener parámetros de filtrado
+      const fromDate = req.query.from ? new Date(req.query.from as string) : undefined;
+      const toDate = req.query.to ? new Date(req.query.to as string) : undefined;
+      const tipo = req.query.type as string | undefined;
+      
+      // Validar parámetros
+      if (fromDate && isNaN(fromDate.getTime())) {
+        return res.status(400).json({ message: 'Fecha inicial inválida' });
+      }
+      if (toDate && isNaN(toDate.getTime())) {
+        return res.status(400).json({ message: 'Fecha final inválida' });
+      }
+      
+      console.log(`Filtros: desde=${fromDate?.toISOString()}, hasta=${toDate?.toISOString()}, tipo=${tipo || 'todos'}`);
+      
+      // Obtener actividades (máximo 1000 para no sobrecargar)
+      const activities = await storage.getUserActivities(1000, 0);
+      
+      // Filtrar actividades por fecha y tipo si es necesario
+      const filteredActivities = activities.filter(activity => {
+        const activityDate = activity.timestamp ? new Date(activity.timestamp) : new Date();
+        
+        let includeActivity = true;
+        
+        if (fromDate) {
+          includeActivity = includeActivity && activityDate >= fromDate;
+        }
+        
+        if (toDate) {
+          const endOfDay = new Date(toDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          includeActivity = includeActivity && activityDate <= endOfDay;
+        }
+        
+        if (tipo && tipo !== 'all') {
+          includeActivity = includeActivity && activity.tipo === tipo;
+        }
+        
+        return includeActivity;
+      });
+      
+      console.log(`Total de actividades filtradas: ${filteredActivities.length}`);
+      
+      res.json(filteredActivities);
+    } catch (error) {
+      console.error('Error obteniendo actividades:', error);
+      res.status(500).json({ message: 'Error al obtener actividades' });
+    }
+  });
+  
   // Obtener datos de rendimiento de usuarios (solo admin)
   app.get('/api/admin/performance', isAdmin, async (req, res) => {
     try {
