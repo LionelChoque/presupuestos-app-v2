@@ -11,12 +11,15 @@ import {
   InsertUser,
   UserActivity,
   InsertUserActivity,
+  Report,
+  InsertReport,
   budgets,
   budgetItems,
   contactInfo,
   importLogs,
   users,
-  userActivities
+  userActivities,
+  reports
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
 import { db } from "./db";
@@ -64,6 +67,11 @@ export interface IStorage {
   importCsvData(csvData: string, options: { compareWithPrevious: boolean; autoFinalizeMissing: boolean }): Promise<{ added: number; updated: number; deleted: number; total: number }>;
   getImportLogs(): Promise<ImportLog[]>;
   createImportLog(log: Omit<InsertImportLog, 'id'>): Promise<ImportLog>;
+  
+  // Report operations
+  getAllReports(): Promise<Report[]>;
+  getReportById(id: number): Promise<Report | undefined>;
+  createReport(report: Omit<InsertReport, 'id'>): Promise<Report>;
 }
 
 // Database storage implementation
@@ -415,6 +423,34 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return importLog as ImportLog;
+  }
+
+  // Report operations
+  async getAllReports(): Promise<Report[]> {
+    const reportsList = await db
+      .select()
+      .from(reports)
+      .orderBy(desc(reports.fechaGeneracion));
+    
+    return reportsList as Report[];
+  }
+
+  async getReportById(id: number): Promise<Report | undefined> {
+    const [report] = await db
+      .select()
+      .from(reports)
+      .where(eq(reports.id, id));
+    
+    return report as Report | undefined;
+  }
+
+  async createReport(report: Omit<InsertReport, 'id'>): Promise<Report> {
+    const [newReport] = await db
+      .insert(reports)
+      .values(report as any)
+      .returning();
+    
+    return newReport as Report;
   }
 }
 
