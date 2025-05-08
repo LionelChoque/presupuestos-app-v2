@@ -182,7 +182,7 @@ export default function UserPerformance() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los usuarios</SelectItem>
-              {users && users.map((user: any) => (
+              {users && Array.isArray(users) && users.map((user: any) => (
                 <SelectItem key={user.id} value={user.id.toString()}>
                   {user.nombre && user.apellido 
                     ? `${user.nombre} ${user.apellido} (${user.username})`
