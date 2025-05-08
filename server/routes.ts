@@ -803,6 +803,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rutas para manejo de reportes
+  app.get('/api/reports', isAuthenticated, async (req, res) => {
+    try {
+      // Obtener reportes generados
+      const reports = await storage.getAllReports();
+      res.json(reports);
+    } catch (error) {
+      console.error('Error obteniendo reportes:', error);
+      res.status(500).json({ message: 'Error al obtener reportes' });
+    }
+  });
+
+  app.post('/api/reports/generate', isAuthenticated, async (req, res) => {
+    try {
+      const reportSchema = z.object({
+        type: z.enum(['summary', 'performance', 'manufacturer', 'client']),
+        from: z.string(),
+        to: z.string(),
+        format: z.enum(['excel', 'pdf', 'csv'])
+      });
+      
+      const validatedData = reportSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos de reporte inválidos', 
+          errors: validatedData.error.format()
+        });
+      }
+      
+      const { type, from, to, format } = validatedData.data;
+      
+      // Crear un título basado en el tipo de reporte
+      let titulo = '';
+      switch (type) {
+        case 'summary': titulo = 'Resumen General de Presupuestos'; break;
+        case 'performance': titulo = 'Análisis de Desempeño de Presupuestos'; break;
+        case 'manufacturer': titulo = 'Análisis por Fabricante'; break;
+        case 'client': titulo = 'Análisis por Cliente'; break;
+      }
+      
+      // Añadir fecha al título
+      titulo += ` (${from} al ${to})`;
+      
+      // Crear reporte
+      const newReport = await storage.createReport({
+        titulo,
+        tipo: type,
+        formato: format,
+        rutaArchivo: `/reports/${Date.now()}_${type}.${format}`,
+        tamano: '120 KB', // Tamaño estimado
+        fechaGeneracion: new Date(),
+        usuarioId: req.user!.id
+      });
+      
+      // Registrar la actividad
+      await logUserActivity(
+        req.user!.id,
+        "report_generate",
+        `Usuario ${req.user!.username} generó un reporte: ${titulo}`,
+        newReport.id.toString(),
+        { type, from, to, format }
+      );
+      
+      res.status(201).json(newReport);
+    } catch (error) {
+      console.error('Error generando reporte:', error);
+      res.status(500).json({ message: 'Error al generar reporte' });
+    }
+  });
+  
+  app.get('/api/reports/:id/download', isAuthenticated, async (req, res) => {
+    try {
+      const reportId = parseInt(req.params.id, 10);
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: 'ID de reporte inválido' });
+      }
+      
+      // Buscar el reporte
+      const report = await storage.getReportById(reportId);
+      if (!report) {
+        return res.status(404).json({ message: 'Reporte no encontrado' });
+      }
+      
+      // En un sistema real, aquí se buscaría el archivo físico
+      // Para este ejemplo, generamos un contenido simple según el formato
+      let fileContent;
+      let contentType;
+      
+      switch (report.formato) {
+        case 'excel':
+          // En un sistema real se generaría un archivo Excel
+          fileContent = Buffer.from('Contenido simulado de Excel');
+          contentType = 'application/vnd.ms-excel';
+          break;
+        case 'pdf':
+          // En un sistema real se generaría un PDF
+          fileContent = Buffer.from('Contenido simulado de PDF');
+          contentType = 'application/pdf';
+          break;
+        case 'csv':
+          // En un sistema real se generaría un CSV
+          fileContent = Buffer.from('id,nombre,valor\n1,prueba,100\n2,prueba2,200');
+          contentType = 'text/csv';
+          break;
+        default:
+          fileContent = Buffer.from('Contenido no válido');
+          contentType = 'text/plain';
+      }
+      
+      // Registrar la actividad de descarga
+      await logUserActivity(
+        req.user!.id,
+        "report_download",
+        `Usuario ${req.user!.username} descargó el reporte: ${report.titulo}`,
+        report.id.toString()
+      );
+      
+      // Enviar el archivo
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${report.titulo.replace(/\s+/g, '_')}.${report.formato}"`);
+      res.send(fileContent);
+    } catch (error) {
+      console.error('Error descargando reporte:', error);
+      res.status(500).json({ message: 'Error al descargar reporte' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
