@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import type { DateRange } from "react-day-picker";
 import { addDays } from 'date-fns';
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";

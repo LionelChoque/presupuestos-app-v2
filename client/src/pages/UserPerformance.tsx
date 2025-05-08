@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import type { DateRange } from "react-day-picker";
 import { addDays, format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { Label } from "@/components/ui/label";
@@ -107,10 +108,15 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 
 // Componente principal de análisis de rendimiento
 export default function UserPerformance() {
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: addDays(new Date(), -30),
     to: new Date(),
   });
+  
+  // Handler para DateRange que maneja tipos correctamente
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+  };
   const [selectedUser, setSelectedUser] = useState<string>("all");
 
   // Cargar datos de usuarios
@@ -168,7 +174,7 @@ export default function UserPerformance() {
           <DatePickerWithRange 
             className="mt-1" 
             value={dateRange}
-            onChange={setDateRange}
+            onChange={handleDateRangeChange}
           />
         </div>
         <div>
