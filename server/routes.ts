@@ -6,6 +6,8 @@ import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth';
+import * as XLSX from 'xlsx';
+import PDFDocument from 'pdfkit';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configurar autenticación
@@ -891,31 +893,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Reporte no encontrado' });
       }
       
-      // En un sistema real, aquí se buscaría el archivo físico
-      // Para este ejemplo, generamos un contenido simple según el formato
+      // Generar contenido según el formato
       let fileContent;
       let contentType;
       let extension;
       
       switch (report.formato) {
         case 'excel':
-          // En un sistema real se generaría un archivo Excel
-          fileContent = Buffer.from('PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000[Content_Types].xml\u00ad\u0090\u00cdN\u00c20\u0010\u0000\u00ef\u00e2+\u0096H\u00a2\u00ad\u0088\u00aa\u00f0\u00000\u0089 \b\u0088\u0097\u00db\u00ddv%m\u0092\u00c4\u00db\u00edE\u00fe\u00fb\u00b6\u0087V\u00e1\u0092\u00f3\u00ce\u0099\u00ef\u00cc\u00e4\u00c3\u00db\u00baL\u00b6\u0088U\u0081\u0012\u00f3\u00ees\u0092\u00c0\u00b0@\u00f3\u0012\u00c6\u00f3\u00b9\u00fd\u00bc{\u0090\u00b4\u0089\u00865l\u00c8p*\u00e1b>W\'E\u00f2\u00be\u00c8\r\u00b8\u0000\u00cc\u0006\u00e2\u0085\u0081\u0095\u00df|\u00fa\u0081\u0096\u00aaS\u00f7\u00d6\u00d5\u00aex\u00c6r\u00fa\u000f\u00c3\u00af\u00f2\u00c9\u00e8\u00e8L\u00e0\u00fdA\u00fbW|\u00e1\u00a9\u00d4\u00bb\'\u00ea\u00cd\u001bg~b\u00af\u0091\u00fe\u00c3<\u00f9\u00f9V\u0018\u0094\u0096\"\u00d8\u00c3\u00fc\u00c5]G\u00fdf\u00e9A\r\u00f89\u00ce\u0084\u0019 \u00d0\u00b9\u00af>\u00c2\u00bec\u00ee\u00ef\u00a3\u0093\u00a2\u009a\u00e2\u00ac\u00bd\u001ew/\u00ebR\u0090\u00c3\u00d1\u00c1{\u00f3\u0000\u0000PK\u0001\u0002\u0014\u0000\u0014\u0000\b\u0000\b\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0013\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000[Content_Types].xmlPK\u0005\u0006\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000A\u0000\u0000\u0000N\u0000\u0000\u0000\u0000\u0000');
+          // Crear un workbook de Excel válido
+          const workbook = XLSX.utils.book_new();
+          
+          // Datos de ejemplo para el reporte
+          const data = [
+            ['ID', 'Empresa', 'Monto', 'Estado'],
+            ['32949', 'RIZOBACTER ARGENTINA S.A.', '12500.00', 'Pendiente'],
+            ['24538', 'ROLANPLAST SRL', '8750.50', 'Aprobado'],
+            ['19872', 'SINFONIA AGROALIMENTARIA SRL', '15000.00', 'Rechazado'],
+            ['35271', 'INGENIERIA DELTA S.A.', '22300.75', 'Pendiente'],
+            ['27894', 'MAQUINARIAS DEL SUR', '17500.00', 'Aprobado']
+          ];
+          
+          // Crear una hoja y añadirla al workbook
+          const worksheet = XLSX.utils.aoa_to_sheet(data);
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte');
+          
+          // Convertir a buffer
+          const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+          fileContent = excelBuffer;
           contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           extension = 'xlsx';
           break;
+          
         case 'pdf':
-          // Crear un PDF válido con contenido mínimo
-          fileContent = Buffer.from('%PDF-1.5\n1 0 obj\n<</Type/Catalog/Pages 2 0 R>>\nendobj\n2 0 obj\n<</Type/Pages/Kids[3 0 R]/Count 1>>\nendobj\n3 0 obj\n<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Resources<<>>/Contents 4 0 R>>\nendobj\n4 0 obj\n<</Length 44>>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(Reporte generado) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000056 00000 n\n0000000111 00000 n\n0000000212 00000 n\ntrailer\n<</Size 5/Root 1 0 R>>\nstartxref\n304\n%%EOF\n');
+          // Crear un PDF con PDFKit
+          const doc = new PDFDocument({
+            margin: 50,
+            size: 'A4'
+          });
+          
+          // Capturar el contenido en un buffer
+          const chunks: Buffer[] = [];
+          doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+          
+          // Contenido del PDF
+          doc.fontSize(25)
+             .text(report.titulo, { align: 'center' });
+          
+          doc.moveDown(2);
+          doc.fontSize(12)
+             .text('Fecha de generación: ' + new Date().toLocaleDateString('es-AR'));
+          
+          doc.moveDown();
+          doc.text('Este reporte contiene información sobre los presupuestos en el sistema.');
+          
+          doc.moveDown(2);
+          // Tabla simple
+          const tableData = [
+            { id: '32949', empresa: 'RIZOBACTER ARGENTINA S.A.', monto: '12500.00', estado: 'Pendiente' },
+            { id: '24538', empresa: 'ROLANPLAST SRL', monto: '8750.50', estado: 'Aprobado' },
+            { id: '19872', empresa: 'SINFONIA AGROALIMENTARIA SRL', monto: '15000.00', estado: 'Rechazado' },
+            { id: '35271', empresa: 'INGENIERIA DELTA S.A.', monto: '22300.75', estado: 'Pendiente' },
+            { id: '27894', empresa: 'MAQUINARIAS DEL SUR', monto: '17500.00', estado: 'Aprobado' }
+          ];
+          
+          // Encabezados
+          let yPos = doc.y;
+          const tableTop = yPos;
+          doc.font('Helvetica-Bold');
+          doc.text('ID', 50, yPos, { width: 60 });
+          doc.text('Empresa', 110, yPos, { width: 200 });
+          doc.text('Monto', 310, yPos, { width: 80 });
+          doc.text('Estado', 390, yPos, { width: 100 });
+          
+          // Filas
+          doc.font('Helvetica');
+          for (let i = 0; i < tableData.length; i++) {
+            yPos += 20;
+            doc.text(tableData[i].id, 50, yPos, { width: 60 });
+            doc.text(tableData[i].empresa, 110, yPos, { width: 200 });
+            doc.text(tableData[i].monto, 310, yPos, { width: 80 });
+            doc.text(tableData[i].estado, 390, yPos, { width: 100 });
+          }
+          
+          // Dibujar líneas
+          doc.rect(50, tableTop - 5, 490, (tableData.length + 1) * 20 + 10).stroke();
+          
+          // Finalizar el documento
+          doc.end();
+          
+          // Esperar a que se complete la generación y convertir a buffer
+          await new Promise<void>((resolve) => {
+            doc.on('end', () => resolve());
+          });
+          
+          fileContent = Buffer.concat(chunks);
           contentType = 'application/pdf';
           extension = 'pdf';
           break;
+          
         case 'csv':
-          // En un sistema real se generaría un CSV
-          fileContent = Buffer.from('id,empresa,monto,estado\n1,RIZOBACTER ARGENTINA S.A.,12500.00,Pendiente\n2,ROLANPLAST SRL,8750.50,Aprobado\n3,SINFONIA AGROALIMENTARIA SRL,15000.00,Rechazado\n');
+          // Generar un CSV con datos de ejemplo
+          const csvContent = 'ID,Empresa,Monto,Estado\n' +
+            '32949,RIZOBACTER ARGENTINA S.A.,12500.00,Pendiente\n' +
+            '24538,ROLANPLAST SRL,8750.50,Aprobado\n' +
+            '19872,SINFONIA AGROALIMENTARIA SRL,15000.00,Rechazado\n' +
+            '35271,INGENIERIA DELTA S.A.,22300.75,Pendiente\n' +
+            '27894,MAQUINARIAS DEL SUR,17500.00,Aprobado\n';
+            
+          fileContent = Buffer.from(csvContent);
           contentType = 'text/csv';
           extension = 'csv';
           break;
+          
         default:
           fileContent = Buffer.from('Contenido no válido');
           contentType = 'text/plain';
