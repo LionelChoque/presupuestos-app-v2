@@ -96,7 +96,7 @@ export default function UsersAdmin() {
     isLoading: isLoadingStats,
     refetch: refetchStats,
   } = useQuery<UserStats>({
-    queryKey: ["/api/admin/stats"],
+    queryKey: ["/api/admin/users/stats"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
@@ -150,7 +150,7 @@ export default function UsersAdmin() {
   // Manejar cambio de estado activo/inactivo de un usuario
   const handleUserStatusChange = async (userId: number, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
