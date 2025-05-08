@@ -268,6 +268,11 @@ export default function AuthPage() {
                           "Registrarse"
                         )}
                       </Button>
+                      
+                      <div className="text-sm text-muted-foreground mt-4 bg-muted p-3 rounded-md border border-border">
+                        <p className="font-medium text-foreground mb-1">Nota importante:</p>
+                        <p>Las cuentas nuevas requieren aprobación de un administrador antes de poder acceder al sistema. Después de registrarte, recibirás notificación cuando tu cuenta sea aprobada.</p>
+                      </div>
                     </form>
                   </Form>
                 </CardContent>
