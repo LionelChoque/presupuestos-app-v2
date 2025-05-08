@@ -227,6 +227,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch import logs' });
     }
   });
+  
+  // Rutas para administración de usuarios
+  
+  // Obtener todos los usuarios (solo admin)
+  app.get('/api/admin/users', isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Eliminar contraseñas antes de enviar
+      const usersWithoutPasswords = users.map(user => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      console.error('Error obteniendo usuarios:', error);
+      res.status(500).json({ message: 'Error al obtener usuarios' });
+    }
+  });
+  
+  // Obtener estadísticas de usuarios (solo admin)
+  app.get('/api/admin/users/stats', isAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getUserStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error obteniendo estadísticas de usuarios:', error);
+      res.status(500).json({ message: 'Error al obtener estadísticas de usuarios' });
+    }
+  });
+  
+  // Actualizar estado (activo/inactivo) de usuario (solo admin)
+  app.patch('/api/admin/users/:userId', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      const updateSchema = z.object({
+        activo: z.boolean()
+      });
+      
+      const validatedData = updateSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { activo } = validatedData.data;
+      
+      // Verificar si el usuario existe
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // Actualizar el estado del usuario
+      const updatedUser = await storage.updateUser(userId, { activo });
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "user_update", 
+          `Usuario ${req.user.username} ${activo ? 'activó' : 'desactivó'} al usuario ${user.username}`,
+          String(userId)
+        );
+      }
+      
+      // Eliminar contraseña antes de enviar
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error actualizando estado de usuario:', error);
+      res.status(500).json({ message: 'Error al actualizar estado de usuario' });
+    }
+  });
+  
+  // Aprobar/rechazar usuario (solo admin)
+  app.patch('/api/admin/users/:userId/approve', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      const approvalSchema = z.object({
+        approved: z.boolean()
+      });
+      
+      const validatedData = approvalSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { approved } = validatedData.data;
+      
+      // Verificar si el usuario existe
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // No permitir cambiar el estado de aprobación de administradores
+      if (user.rol === 'admin') {
+        return res.status(403).json({ 
+          message: 'No se puede cambiar el estado de aprobación de un administrador' 
+        });
+      }
+      
+      // Actualizar el estado de aprobación
+      const updatedUser = await storage.updateUser(userId, { aprobado: approved });
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "user_approval", 
+          `Usuario ${req.user.username} ${approved ? 'aprobó' : 'rechazó'} al usuario ${user.username}`,
+          String(userId)
+        );
+      }
+      
+      // Eliminar contraseña antes de enviar
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error actualizando aprobación de usuario:', error);
+      res.status(500).json({ message: 'Error al actualizar aprobación de usuario' });
+    }
+  });
 
   // Import demo CSV file
   app.post('/api/import/demo', isAuthenticated, async (req, res) => {
