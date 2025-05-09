@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth';
+import { setupAuth, isAuthenticated, isAdmin, logUserActivity, hashPassword } from './auth';
 import * as XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 
