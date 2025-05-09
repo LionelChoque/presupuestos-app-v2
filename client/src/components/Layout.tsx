@@ -13,6 +13,11 @@ import {
   X,
   Activity,
   Award,
+  Home,
+  Files,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -34,7 +39,19 @@ interface LayoutProps {
 export function Layout({ children, onImport }: LayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Inicializar el estado desde localStorage o usar false por defecto
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
   const { user, logoutMutation } = useAuth();
+  
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    // Guardar en localStorage
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
+  };
 
   const navItems = [
     {
@@ -195,8 +212,19 @@ export function Layout({ children, onImport }: LayoutProps) {
         {/* Desktop Sidebar - Solo mostrar si no es la página de autenticación */}
         {location !== '/auth' && (
           <div className="hidden md:flex md:flex-shrink-0">
-            <div className="flex flex-col w-64 bg-white border-r border-gray-200">
+            <div className={`flex flex-col ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 transition-all duration-300`}>
               <div className="h-0 flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+                {/* Botón para colapsar/expandir sidebar */}
+                <div className="px-3 flex justify-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={toggleSidebar} 
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+                  </Button>
+                </div>
                 <nav className="mt-5 flex-1 px-2 space-y-1">
                   {navItems.map((item) => (
                     <Link
@@ -211,8 +239,8 @@ export function Layout({ children, onImport }: LayoutProps) {
                         }
                       `}
                     >
-                      <span className="mr-3 h-5 w-5">{item.icon}</span>
-                      <span>{item.label}</span>
+                      <span className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'} h-5 w-5`}>{item.icon}</span>
+                      {!sidebarCollapsed && <span>{item.label}</span>}
                     </Link>
                   ))}
                 </nav>
@@ -275,7 +303,7 @@ export function Layout({ children, onImport }: LayoutProps) {
         )}
 
         {/* Content area */}
-        <div className="flex-1 overflow-auto">
+        <div className={`flex-1 overflow-auto transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-0'}`}>
           <main className="py-6 px-4 sm:px-6 lg:px-8">
             {children}
           </main>
