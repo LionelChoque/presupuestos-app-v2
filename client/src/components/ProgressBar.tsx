@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from '@/lib/utils';
 
 interface ProgressBarProps {
   value: number;
@@ -9,24 +8,23 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ value, color = '#4CAF50', label, className }: ProgressBarProps) {
-  // Asegurar que el valor esté entre 0 y 100
-  const safeValue = Math.max(0, Math.min(100, value));
+  // Asegurarse de que el valor esté entre 0 y 100
+  const normalizedValue = Math.max(0, Math.min(100, value));
   
   return (
-    <div className={cn("w-full", className)}>
-      <div className="relative w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+    <div className={`w-full ${className}`}>
+      <div className="flex justify-between mb-1">
+        {label && <span className="text-xs font-medium text-gray-700">{label}</span>}
+        <span className="text-xs font-medium text-gray-700">{normalizedValue.toFixed(0)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
         <div 
-          className="h-full rounded-full transition-all duration-300 ease-in-out"
+          className="h-2.5 rounded-full transition-all duration-300 ease-in-out"
           style={{ 
-            width: `${safeValue}%`,
-            backgroundColor: color
+            width: `${normalizedValue}%`, 
+            backgroundColor: color 
           }}
-        />
-        {label && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
-            {label}
-          </div>
-        )}
+        ></div>
       </div>
     </div>
   );

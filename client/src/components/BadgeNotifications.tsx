@@ -91,10 +91,10 @@ export function BadgeNotifications() {
   
   // Efecto para mostrar notificaciones
   useEffect(() => {
-    if (recentBadges && recentBadges.length > 0) {
+    if (recentBadges && Array.isArray(recentBadges) && recentBadges.length > 0) {
       // Filtrar solo las insignias completadas que no se han mostrado aún
       const newNotifications = recentBadges.filter(
-        badge => badge.completado && !badge.mostrado
+        (badge: UserBadge & { badge: Badge }) => badge.completado && !badge.mostrado
       );
       
       if (newNotifications.length > 0) {
