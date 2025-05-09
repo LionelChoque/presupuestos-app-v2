@@ -476,7 +476,7 @@ export default function BadgesPage() {
   
   return (
     <Layout onImport={() => {}}>
-      <div className="container mx-auto py-6">
+      <div className="w-full">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Insignias de Logros</h1>
           {isAdmin && (
