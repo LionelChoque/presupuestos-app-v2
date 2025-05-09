@@ -29,7 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, PlusCircle, UserCog, UserX, Users } from "lucide-react";
+import { Key, Loader2, PlusCircle, Shield, Trash2, UserCog, UserX, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
@@ -69,8 +69,19 @@ interface UserStats {
 }
 
 export default function UsersAdmin() {
-  // Estado para el diálogo de nuevo usuario
+  // Estados para los diálogos
   const [isNewUserDialogOpen, setIsNewUserDialogOpen] = useState(false);
+  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
+  const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
+  const [isMakeAdminDialogOpen, setIsMakeAdminDialogOpen] = useState(false);
+  
+  // Usuario seleccionado para acciones
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  // Datos para nuevas contraseñas
+  const [newPassword, setNewPassword] = useState("");
+  
+  // Estado para el formulario de nuevo usuario
   const [newUserData, setNewUserData] = useState({
     username: "",
     password: "",
@@ -202,6 +213,109 @@ export default function UsersAdmin() {
       alert(error instanceof Error ? error.message : 'Error al actualizar estado de aprobación del usuario');
     }
   };
+  
+  // Hacer administrador a un usuario
+  const handleMakeAdmin = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const response = await fetch(`/api/admin/users/${selectedUser.id}/make-admin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al hacer administrador al usuario');
+      }
+      
+      // Refrescar la lista
+      refetchUsers();
+      refetchStats();
+      
+      // Cerrar el diálogo
+      setIsMakeAdminDialogOpen(false);
+      setSelectedUser(null);
+      
+      // Notificar éxito
+      alert(`El usuario ha sido convertido en administrador correctamente`);
+    } catch (error) {
+      console.error('Error al hacer administrador al usuario:', error);
+      alert(error instanceof Error ? error.message : 'Error al hacer administrador al usuario');
+    }
+  };
+  
+  // Resetear la contraseña de un usuario
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUser || !newPassword) return;
+    
+    try {
+      const response = await fetch(`/api/admin/users/${selectedUser.id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al resetear la contraseña');
+      }
+      
+      // Refrescar la lista
+      refetchUsers();
+      refetchStats();
+      
+      // Reiniciar el campo y cerrar el diálogo
+      setNewPassword("");
+      setIsResetPasswordDialogOpen(false);
+      setSelectedUser(null);
+      
+      // Notificar éxito
+      alert(`La contraseña ha sido reseteada correctamente`);
+    } catch (error) {
+      console.error('Error al resetear la contraseña:', error);
+      alert(error instanceof Error ? error.message : 'Error al resetear la contraseña');
+    }
+  };
+  
+  // Eliminar un usuario
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al eliminar al usuario');
+      }
+      
+      // Refrescar la lista
+      refetchUsers();
+      refetchStats();
+      
+      // Cerrar el diálogo
+      setIsDeleteUserDialogOpen(false);
+      setSelectedUser(null);
+      
+      // Notificar éxito
+      alert(`El usuario ha sido eliminado correctamente`);
+    } catch (error) {
+      console.error('Error al eliminar al usuario:', error);
+      alert(error instanceof Error ? error.message : 'Error al eliminar al usuario');
+    }
+  };
 
   // Renderizar tabla de usuarios
   const renderUsersTable = () => {
@@ -288,11 +402,40 @@ export default function UsersAdmin() {
               </TableCell>
               <TableCell>
                 <div className="flex space-x-1">
-                  <Button variant="ghost" size="icon">
-                    <UserCog className="h-4 w-4" />
+                  {user.rol !== 'admin' && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      title="Hacer administrador"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setIsMakeAdminDialogOpen(true);
+                      }}
+                    >
+                      <Shield className="h-4 w-4 text-blue-500" />
+                    </Button>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    title="Resetear contraseña"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setIsResetPasswordDialogOpen(true);
+                    }}
+                  >
+                    <Key className="h-4 w-4 text-amber-500" />
                   </Button>
-                  <Button variant="ghost" size="icon">
-                    <UserX className="h-4 w-4 text-destructive" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    title="Eliminar usuario"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setIsDeleteUserDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               </TableCell>
@@ -562,6 +705,116 @@ export default function UsersAdmin() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Diálogo para hacer administrador a un usuario */}
+      <Dialog open={isMakeAdminDialogOpen} onOpenChange={setIsMakeAdminDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hacer administrador</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas dar permisos de administrador a este usuario?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedUser && (
+              <div className="space-y-2">
+                <p><strong>Usuario:</strong> {selectedUser.username}</p>
+                <p><strong>Nombre:</strong> {selectedUser.nombre && selectedUser.apellido ? `${selectedUser.nombre} ${selectedUser.apellido}` : "No especificado"}</p>
+                <p><strong>Email:</strong> {selectedUser.email || "No especificado"}</p>
+              </div>
+            )}
+            <p className="text-sm text-destructive mt-4">
+              Esta acción otorgará al usuario permisos completos de administración en el sistema.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMakeAdminDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={handleMakeAdmin}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo para resetear contraseña */}
+      <Dialog open={isResetPasswordDialogOpen} onOpenChange={setIsResetPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Resetear contraseña</DialogTitle>
+            <DialogDescription>
+              Ingresa una nueva contraseña para el usuario.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleResetPassword}>
+            <div className="py-4">
+              {selectedUser && (
+                <div className="space-y-2 mb-4">
+                  <p><strong>Usuario:</strong> {selectedUser.username}</p>
+                </div>
+              )}
+              <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="newPassword">Nueva contraseña</Label>
+                <Input
+                  id="newPassword"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  type="password"
+                  placeholder="Ingresa la nueva contraseña"
+                  required
+                  minLength={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  La contraseña debe tener al menos 6 caracteres.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsResetPasswordDialogOpen(false)} type="button">
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-700">
+                Resetear contraseña
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo para eliminar usuario */}
+      <Dialog open={isDeleteUserDialogOpen} onOpenChange={setIsDeleteUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar usuario</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {selectedUser && (
+              <div className="space-y-2">
+                <p><strong>Usuario:</strong> {selectedUser.username}</p>
+                <p><strong>Nombre:</strong> {selectedUser.nombre && selectedUser.apellido ? `${selectedUser.nombre} ${selectedUser.apellido}` : "No especificado"}</p>
+                <p><strong>Email:</strong> {selectedUser.email || "No especificado"}</p>
+              </div>
+            )}
+            <p className="text-sm text-destructive mt-4 font-semibold">
+              ADVERTENCIA: Esta acción eliminará permanentemente al usuario y todos sus datos asociados.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteUserDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={handleDeleteUser} 
+              variant="destructive"
+            >
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
