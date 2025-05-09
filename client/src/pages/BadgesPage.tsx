@@ -62,7 +62,9 @@ const BadgeCard = ({
   onDelete,
   onUpdateProgress
 }: BadgeCardProps) => {
-  const [progress, setProgress] = useState(userBadge?.progreso || 0);
+  // Usar progresoActual en lugar de progreso
+  const initialProgress = userBadge?.progresoActual ? parseInt(userBadge.progresoActual) : 0;
+  const [progress, setProgress] = useState(initialProgress);
   
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newProgress = parseInt(e.target.value);
@@ -128,9 +130,9 @@ const BadgeCard = ({
         {userBadge && (
           <div className="w-full mt-4">
             <ProgressBar
-              value={userBadge.progreso}
+              value={parseInt(userBadge.progresoActual || '0')}
               color={badge.color}
-              label={`${userBadge.progreso}%`}
+              label={`${userBadge.progresoActual || '0'}%`}
             />
             {userBadge.completado ? (
               <div className="mt-2 text-center text-green-600 font-medium">
