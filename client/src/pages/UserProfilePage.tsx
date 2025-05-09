@@ -153,16 +153,14 @@ export default function UserProfilePage() {
                 <TabsTrigger value="perfil">Editar Perfil</TabsTrigger>
                 <TabsTrigger value="password">Cambiar Contraseña</TabsTrigger>
               </TabsList>
+              <TabsContent value="perfil">
+                <ProfileForm user={user} />
+              </TabsContent>
+              <TabsContent value="password">
+                <PasswordForm user={user} />
+              </TabsContent>
             </Tabs>
           </CardHeader>
-          <CardContent>
-            <TabsContent value="perfil" className={activeTab === 'perfil' ? 'block' : 'hidden'}>
-              <ProfileForm user={user} />
-            </TabsContent>
-            <TabsContent value="password" className={activeTab === 'password' ? 'block' : 'hidden'}>
-              <PasswordForm user={user} />
-            </TabsContent>
-          </CardContent>
         </Card>
       </div>
     </div>
