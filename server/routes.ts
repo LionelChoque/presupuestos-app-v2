@@ -750,6 +750,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Hacer administrador a un usuario (solo admin)
+  app.patch('/api/admin/users/:userId/make-admin', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Verificar si el usuario existe
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      if (user.rol === 'admin') {
+        return res.status(400).json({ message: 'El usuario ya es administrador' });
+      }
+      
+      // Actualizar el rol a admin
+      const updatedUser = await storage.updateUser(userId, { rol: 'admin' });
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "user_make_admin", 
+          `Usuario ${req.user.username} convirtió en administrador al usuario ${user.username}`,
+          String(userId)
+        );
+      }
+      
+      // Eliminar contraseña antes de enviar
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error haciendo administrador al usuario:', error);
+      res.status(500).json({ message: 'Error al hacer administrador al usuario' });
+    }
+  });
+  
+  // Resetear contraseña de usuario (solo admin)
+  app.post('/api/admin/users/:userId/reset-password', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      const passwordSchema = z.object({
+        newPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres')
+      });
+      
+      const validatedData = passwordSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { newPassword } = validatedData.data;
+      
+      // Verificar si el usuario existe
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // Hashear la nueva contraseña
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Actualizar la contraseña
+      const updatedUser = await storage.updateUser(userId, { password: hashedPassword });
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "user_reset_password", 
+          `Usuario ${req.user.username} reseteo la contraseña del usuario ${user.username}`,
+          String(userId)
+        );
+      }
+      
+      res.json({ message: 'Contraseña actualizada correctamente' });
+    } catch (error) {
+      console.error('Error al resetear contraseña:', error);
+      res.status(500).json({ message: 'Error al resetear contraseña del usuario' });
+    }
+  });
+  
+  // Eliminar usuario (solo admin)
+  app.delete('/api/admin/users/:userId', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Verificar si el usuario existe
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // Evitar que un administrador se elimine a sí mismo
+      if (req.user && req.user.id === userId) {
+        return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta' });
+      }
+      
+      // Eliminar usuario
+      await storage.deleteUser(userId);
+      
+      // Registrar la actividad
+      if (req.user) {
+        await logUserActivity(
+          req.user.id, 
+          "user_delete", 
+          `Usuario ${req.user.username} eliminó al usuario ${user.username}`,
+          String(userId)
+        );
+      }
+      
+      res.json({ message: 'Usuario eliminado correctamente' });
+    } catch (error) {
+      console.error('Error al eliminar usuario:', error);
+      res.status(500).json({ message: 'Error al eliminar usuario' });
+    }
+  });
+
   // Import demo CSV file
   app.post('/api/import/demo', isAuthenticated, async (req, res) => {
     try {
