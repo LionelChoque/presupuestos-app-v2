@@ -97,6 +97,32 @@ export const reports = pgTable("reports", {
   esPublico: boolean("es_publico").default(true),
 });
 
+// Tabla para insignias de logros financieros
+export const badges = pgTable("badges", {
+  id: serial("id").primaryKey(),
+  nombre: text("nombre").notNull(),
+  descripcion: text("descripcion").notNull(),
+  tipoObjetivo: text("tipo_objetivo").notNull(), // monto_total, cantidad_presupuestos, etc.
+  valorObjetivo: decimal("valor_objetivo", { precision: 15, scale: 2 }).notNull(),
+  icono: text("icono").notNull(), // Nombre del icono o ruta al SVG
+  color: text("color").notNull(), // Color para el icono (hex)
+  activo: boolean("activo").default(true),
+  fechaCreacion: timestamp("fecha_creacion").defaultNow(),
+  creadorId: integer("creador_id").references(() => users.id),
+  publico: boolean("publico").default(false), // Si es visible para todos los usuarios
+});
+
+// Tabla para asignación de insignias a usuarios
+export const userBadges = pgTable("user_badges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  badgeId: integer("badge_id").notNull().references(() => badges.id),
+  fechaObtencion: timestamp("fecha_obtencion").defaultNow(),
+  progresoActual: decimal("progreso_actual", { precision: 15, scale: 2 }).notNull().default("0"),
+  completado: boolean("completado").default(false),
+  mostrado: boolean("mostrado").default(false), // Para notificaciones
+});
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -131,6 +157,16 @@ export const insertReportSchema = createInsertSchema(reports).omit({
   fechaGeneracion: true,
 });
 
+export const insertBadgeSchema = createInsertSchema(badges).omit({
+  id: true,
+  fechaCreacion: true,
+});
+
+export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  fechaObtencion: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -152,3 +188,9 @@ export type UserActivity = typeof userActivities.$inferSelect;
 
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
+
+export type InsertBadge = z.infer<typeof insertBadgeSchema>;
+export type Badge = typeof badges.$inferSelect;
+
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+export type UserBadge = typeof userBadges.$inferSelect;

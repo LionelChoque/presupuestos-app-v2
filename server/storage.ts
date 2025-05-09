@@ -72,6 +72,19 @@ export interface IStorage {
   getAllReports(): Promise<Report[]>;
   getReportById(id: number): Promise<Report | undefined>;
   createReport(report: Omit<InsertReport, 'id'>): Promise<Report>;
+  
+  // Badge operations
+  getAllBadges(): Promise<Badge[]>;
+  getBadgeById(id: number): Promise<Badge | undefined>;
+  createBadge(badge: InsertBadge): Promise<Badge>;
+  updateBadge(id: number, badgeData: Partial<Omit<InsertBadge, 'id'>>): Promise<Badge | undefined>;
+  deleteBadge(id: number): Promise<boolean>;
+  getUserBadges(userId: number): Promise<(UserBadge & { badge: Badge })[]>;
+  assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge>;
+  updateUserBadgeProgress(userId: number, badgeId: number, progress: number): Promise<UserBadge | undefined>;
+  markBadgeAsCompleted(userId: number, badgeId: number): Promise<UserBadge | undefined>;
+  markBadgeAsShown(userId: number, badgeId: number): Promise<UserBadge | undefined>;
+  getRecentlyCompletedBadges(userId: number, limit?: number): Promise<(UserBadge & { badge: Badge })[]>;
 }
 
 // Database storage implementation
@@ -451,6 +464,173 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return newReport as Report;
+  }
+
+  // Badge operations
+  async getAllBadges(): Promise<Badge[]> {
+    const badgesList = await db
+      .select()
+      .from(badges)
+      .orderBy(badges.nombre);
+    
+    return badgesList as Badge[];
+  }
+
+  async getBadgeById(id: number): Promise<Badge | undefined> {
+    const [badge] = await db
+      .select()
+      .from(badges)
+      .where(eq(badges.id, id));
+    
+    return badge as Badge | undefined;
+  }
+
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const [newBadge] = await db
+      .insert(badges)
+      .values(badge as any)
+      .returning();
+    
+    return newBadge as Badge;
+  }
+
+  async updateBadge(id: number, badgeData: Partial<Omit<InsertBadge, 'id'>>): Promise<Badge | undefined> {
+    const [updatedBadge] = await db
+      .update(badges)
+      .set(badgeData as any)
+      .where(eq(badges.id, id))
+      .returning();
+    
+    return updatedBadge as Badge | undefined;
+  }
+
+  async deleteBadge(id: number): Promise<boolean> {
+    const [deletedBadge] = await db
+      .delete(badges)
+      .where(eq(badges.id, id))
+      .returning();
+    
+    return !!deletedBadge;
+  }
+
+  async getUserBadges(userId: number): Promise<(UserBadge & { badge: Badge })[]> {
+    const userBadgesList = await db
+      .select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId));
+    
+    const result: (UserBadge & { badge: Badge })[] = [];
+    
+    for (const userBadge of userBadgesList) {
+      const [badge] = await db
+        .select()
+        .from(badges)
+        .where(eq(badges.id, userBadge.badgeId));
+      
+      if (badge) {
+        result.push({
+          ...userBadge,
+          badge: badge as Badge
+        });
+      }
+    }
+    
+    return result;
+  }
+
+  async assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge> {
+    // Verificar si ya existe
+    const existingBadges = await db
+      .select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.badgeId, badgeId));
+    
+    if (existingBadges.length > 0) {
+      return existingBadges[0] as UserBadge;
+    }
+    
+    // Si no existe, crear nueva asignación
+    const [newUserBadge] = await db
+      .insert(userBadges)
+      .values({
+        userId,
+        badgeId,
+        progresoActual: "0",
+        completado: false,
+        mostrado: false
+      } as any)
+      .returning();
+    
+    return newUserBadge as UserBadge;
+  }
+
+  async updateUserBadgeProgress(userId: number, badgeId: number, progress: number): Promise<UserBadge | undefined> {
+    const [updatedUserBadge] = await db
+      .update(userBadges)
+      .set({
+        progresoActual: progress.toString()
+      } as any)
+      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.badgeId, badgeId))
+      .returning();
+    
+    return updatedUserBadge as UserBadge | undefined;
+  }
+
+  async markBadgeAsCompleted(userId: number, badgeId: number): Promise<UserBadge | undefined> {
+    const [updatedUserBadge] = await db
+      .update(userBadges)
+      .set({
+        completado: true,
+        fechaObtencion: new Date()
+      } as any)
+      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.badgeId, badgeId))
+      .returning();
+    
+    return updatedUserBadge as UserBadge | undefined;
+  }
+
+  async markBadgeAsShown(userId: number, badgeId: number): Promise<UserBadge | undefined> {
+    const [updatedUserBadge] = await db
+      .update(userBadges)
+      .set({
+        mostrado: true
+      } as any)
+      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.badgeId, badgeId))
+      .returning();
+    
+    return updatedUserBadge as UserBadge | undefined;
+  }
+
+  async getRecentlyCompletedBadges(userId: number, limit = 5): Promise<(UserBadge & { badge: Badge })[]> {
+    const completedBadges = await db
+      .select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId))
+      .where(eq(userBadges.completado, true))
+      .orderBy(desc(userBadges.fechaObtencion))
+      .limit(limit);
+    
+    const result: (UserBadge & { badge: Badge })[] = [];
+    
+    for (const userBadge of completedBadges) {
+      const [badge] = await db
+        .select()
+        .from(badges)
+        .where(eq(badges.id, userBadge.badgeId));
+      
+      if (badge) {
+        result.push({
+          ...userBadge,
+          badge: badge as Badge
+        });
+      }
+    }
+    
+    return result;
   }
 }
 
