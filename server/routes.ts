@@ -1029,6 +1029,362 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ======================= BADGES / INSIGNIAS API =======================
+
+  // Obtener todas las insignias
+  app.get('/api/badges', async (req, res) => {
+    try {
+      const badges = await storage.getAllBadges();
+      res.json(badges);
+    } catch (error) {
+      console.error('Error al obtener insignias:', error);
+      res.status(500).json({ message: 'Error al obtener insignias' });
+    }
+  });
+
+  // Obtener una insignia específica
+  app.get('/api/badges/:id', async (req, res) => {
+    try {
+      const badgeId = parseInt(req.params.id, 10);
+      
+      if (isNaN(badgeId)) {
+        return res.status(400).json({ message: 'ID de insignia inválido' });
+      }
+      
+      const badge = await storage.getBadgeById(badgeId);
+      
+      if (!badge) {
+        return res.status(404).json({ message: 'Insignia no encontrada' });
+      }
+      
+      res.json(badge);
+    } catch (error) {
+      console.error('Error al obtener insignia:', error);
+      res.status(500).json({ message: 'Error al obtener insignia' });
+    }
+  });
+
+  // Crear una nueva insignia (solo admin)
+  app.post('/api/badges', isAdmin, async (req, res) => {
+    try {
+      const badgeSchema = z.object({
+        nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+        descripcion: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
+        tipoObjetivo: z.string(),
+        valorObjetivo: z.number().positive('El valor objetivo debe ser positivo'),
+        icono: z.string(),
+        color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color debe ser un valor hexadecimal válido'),
+        publico: z.boolean().optional().default(false)
+      });
+      
+      const validatedData = badgeSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos de insignia inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const badge = await storage.createBadge({
+        ...validatedData.data,
+        creadorId: req.user!.id
+      });
+      
+      // Registrar actividad
+      await logUserActivity(
+        req.user!.id,
+        "badge_created",
+        `Usuario ${req.user!.username} creó la insignia: ${badge.nombre}`,
+        badge.id.toString()
+      );
+      
+      res.status(201).json(badge);
+    } catch (error) {
+      console.error('Error al crear insignia:', error);
+      res.status(500).json({ message: 'Error al crear insignia' });
+    }
+  });
+
+  // Actualizar una insignia (solo admin)
+  app.patch('/api/badges/:id', isAdmin, async (req, res) => {
+    try {
+      const badgeId = parseInt(req.params.id, 10);
+      
+      if (isNaN(badgeId)) {
+        return res.status(400).json({ message: 'ID de insignia inválido' });
+      }
+      
+      const badgeUpdateSchema = z.object({
+        nombre: z.string().min(3).optional(),
+        descripcion: z.string().min(10).optional(),
+        tipoObjetivo: z.string().optional(),
+        valorObjetivo: z.number().positive().optional(),
+        icono: z.string().optional(),
+        color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).optional(),
+        activo: z.boolean().optional(),
+        publico: z.boolean().optional()
+      });
+      
+      const validatedData = badgeUpdateSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos de actualización inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const updatedBadge = await storage.updateBadge(badgeId, validatedData.data);
+      
+      if (!updatedBadge) {
+        return res.status(404).json({ message: 'Insignia no encontrada' });
+      }
+      
+      // Registrar actividad
+      await logUserActivity(
+        req.user!.id,
+        "badge_updated",
+        `Usuario ${req.user!.username} actualizó la insignia: ${updatedBadge.nombre}`,
+        updatedBadge.id.toString()
+      );
+      
+      res.json(updatedBadge);
+    } catch (error) {
+      console.error('Error al actualizar insignia:', error);
+      res.status(500).json({ message: 'Error al actualizar insignia' });
+    }
+  });
+
+  // Eliminar una insignia (solo admin)
+  app.delete('/api/badges/:id', isAdmin, async (req, res) => {
+    try {
+      const badgeId = parseInt(req.params.id, 10);
+      
+      if (isNaN(badgeId)) {
+        return res.status(400).json({ message: 'ID de insignia inválido' });
+      }
+      
+      // Primero obtenemos la insignia para registro
+      const badge = await storage.getBadgeById(badgeId);
+      
+      if (!badge) {
+        return res.status(404).json({ message: 'Insignia no encontrada' });
+      }
+      
+      const deleted = await storage.deleteBadge(badgeId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: 'No se pudo eliminar la insignia' });
+      }
+      
+      // Registrar actividad
+      await logUserActivity(
+        req.user!.id,
+        "badge_deleted",
+        `Usuario ${req.user!.username} eliminó la insignia: ${badge.nombre}`,
+        badge.id.toString()
+      );
+      
+      res.json({ message: 'Insignia eliminada correctamente' });
+    } catch (error) {
+      console.error('Error al eliminar insignia:', error);
+      res.status(500).json({ message: 'Error al eliminar insignia' });
+    }
+  });
+
+  // Obtener insignias de un usuario
+  app.get('/api/users/:userId/badges', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Verificar permiso (solo admin o el propio usuario)
+      if (req.user!.id !== userId && req.user!.rol !== 'admin') {
+        return res.status(403).json({ message: 'No autorizado para ver estas insignias' });
+      }
+      
+      const userBadges = await storage.getUserBadges(userId);
+      res.json(userBadges);
+    } catch (error) {
+      console.error('Error al obtener insignias del usuario:', error);
+      res.status(500).json({ message: 'Error al obtener insignias del usuario' });
+    }
+  });
+
+  // Asignar una insignia a un usuario (solo admin)
+  app.post('/api/users/:userId/badges', isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      const assignSchema = z.object({
+        badgeId: z.number().int()
+      });
+      
+      const validatedData = assignSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos de asignación inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { badgeId } = validatedData.data;
+      
+      // Comprobar que el usuario existe
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // Comprobar que la insignia existe
+      const badge = await storage.getBadgeById(badgeId);
+      
+      if (!badge) {
+        return res.status(404).json({ message: 'Insignia no encontrada' });
+      }
+      
+      const userBadge = await storage.assignBadgeToUser(userId, badgeId);
+      
+      // Registrar actividad
+      await logUserActivity(
+        req.user!.id,
+        "badge_assigned",
+        `Usuario ${req.user!.username} asignó la insignia ${badge.nombre} al usuario ${user.username}`,
+        badge.id.toString(),
+        { userId, badgeId }
+      );
+      
+      res.status(201).json(userBadge);
+    } catch (error) {
+      console.error('Error al asignar insignia:', error);
+      res.status(500).json({ message: 'Error al asignar insignia' });
+    }
+  });
+
+  // Actualizar el progreso de una insignia
+  app.patch('/api/users/:userId/badges/:badgeId/progress', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      const badgeId = parseInt(req.params.badgeId, 10);
+      
+      if (isNaN(userId) || isNaN(badgeId)) {
+        return res.status(400).json({ message: 'IDs inválidos' });
+      }
+      
+      // Verificar permiso (solo admin o el propio usuario)
+      if (req.user!.id !== userId && req.user!.rol !== 'admin') {
+        return res.status(403).json({ message: 'No autorizado para actualizar este progreso' });
+      }
+      
+      const progressSchema = z.object({
+        progress: z.number().min(0)
+      });
+      
+      const validatedData = progressSchema.safeParse(req.body);
+      
+      if (!validatedData.success) {
+        return res.status(400).json({ 
+          message: 'Datos de progreso inválidos', 
+          errors: validatedData.error.format() 
+        });
+      }
+      
+      const { progress } = validatedData.data;
+      
+      // Obtener la insignia para verificar si se ha completado
+      const badge = await storage.getBadgeById(badgeId);
+      
+      if (!badge) {
+        return res.status(404).json({ message: 'Insignia no encontrada' });
+      }
+      
+      const updatedBadge = await storage.updateUserBadgeProgress(userId, badgeId, progress);
+      
+      if (!updatedBadge) {
+        return res.status(404).json({ message: 'Asignación de insignia no encontrada' });
+      }
+      
+      // Si el progreso alcanza o supera el valor objetivo, marcar como completada
+      if (progress >= Number(badge.valorObjetivo) && !updatedBadge.completado) {
+        await storage.markBadgeAsCompleted(userId, badgeId);
+        
+        // Registrar actividad de logro completado
+        await logUserActivity(
+          userId,
+          "badge_completed",
+          `Usuario completó la insignia: ${badge.nombre}`,
+          badge.id.toString(),
+          { progress }
+        );
+      }
+      
+      res.json(updatedBadge);
+    } catch (error) {
+      console.error('Error al actualizar progreso:', error);
+      res.status(500).json({ message: 'Error al actualizar progreso' });
+    }
+  });
+
+  // Marcar una insignia como mostrada (para notificaciones)
+  app.patch('/api/users/:userId/badges/:badgeId/shown', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      const badgeId = parseInt(req.params.badgeId, 10);
+      
+      if (isNaN(userId) || isNaN(badgeId)) {
+        return res.status(400).json({ message: 'IDs inválidos' });
+      }
+      
+      // Verificar permiso (solo el propio usuario)
+      if (req.user!.id !== userId) {
+        return res.status(403).json({ message: 'No autorizado para actualizar este estado' });
+      }
+      
+      const updatedBadge = await storage.markBadgeAsShown(userId, badgeId);
+      
+      if (!updatedBadge) {
+        return res.status(404).json({ message: 'Asignación de insignia no encontrada' });
+      }
+      
+      res.json(updatedBadge);
+    } catch (error) {
+      console.error('Error al marcar insignia como mostrada:', error);
+      res.status(500).json({ message: 'Error al actualizar estado de insignia' });
+    }
+  });
+
+  // Obtener insignias completadas recientemente (para notificaciones)
+  app.get('/api/users/:userId/badges/recent', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId, 10);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Verificar permiso (solo el propio usuario)
+      if (req.user!.id !== userId) {
+        return res.status(403).json({ message: 'No autorizado para ver estas insignias' });
+      }
+      
+      const recentBadges = await storage.getRecentlyCompletedBadges(userId);
+      res.json(recentBadges);
+    } catch (error) {
+      console.error('Error al obtener insignias recientes:', error);
+      res.status(500).json({ message: 'Error al obtener insignias recientes' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

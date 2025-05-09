@@ -13,13 +13,19 @@ import {
   InsertUserActivity,
   Report,
   InsertReport,
+  Badge,
+  InsertBadge,
+  UserBadge,
+  InsertUserBadge,
   budgets,
   budgetItems,
   contactInfo,
   importLogs,
   users,
   userActivities,
-  reports
+  reports,
+  badges,
+  userBadges
 } from "@shared/schema";
 import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
 import { db } from "./db";
@@ -540,9 +546,11 @@ export class DatabaseStorage implements IStorage {
 
   async assignBadgeToUser(userId: number, badgeId: number): Promise<UserBadge> {
     // Verificar si ya existe
-    const existingBadges = await db
+    const existingBadgesQuery = db
       .select()
-      .from(userBadges)
+      .from(userBadges);
+    
+    const existingBadges = await existingBadgesQuery
       .where(eq(userBadges.userId, userId))
       .where(eq(userBadges.badgeId, badgeId));
     
@@ -566,11 +574,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserBadgeProgress(userId: number, badgeId: number, progress: number): Promise<UserBadge | undefined> {
-    const [updatedUserBadge] = await db
-      .update(userBadges)
+    const updateQuery = db.update(userBadges)
       .set({
         progresoActual: progress.toString()
-      } as any)
+      } as any);
+    
+    const [updatedUserBadge] = await updateQuery
       .where(eq(userBadges.userId, userId))
       .where(eq(userBadges.badgeId, badgeId))
       .returning();
@@ -579,12 +588,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async markBadgeAsCompleted(userId: number, badgeId: number): Promise<UserBadge | undefined> {
-    const [updatedUserBadge] = await db
-      .update(userBadges)
+    const updateQuery = db.update(userBadges)
       .set({
         completado: true,
         fechaObtencion: new Date()
-      } as any)
+      } as any);
+    
+    const [updatedUserBadge] = await updateQuery
       .where(eq(userBadges.userId, userId))
       .where(eq(userBadges.badgeId, badgeId))
       .returning();
@@ -593,11 +603,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async markBadgeAsShown(userId: number, badgeId: number): Promise<UserBadge | undefined> {
-    const [updatedUserBadge] = await db
-      .update(userBadges)
+    const updateQuery = db.update(userBadges)
       .set({
         mostrado: true
-      } as any)
+      } as any);
+    
+    const [updatedUserBadge] = await updateQuery
       .where(eq(userBadges.userId, userId))
       .where(eq(userBadges.badgeId, badgeId))
       .returning();
@@ -606,9 +617,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentlyCompletedBadges(userId: number, limit = 5): Promise<(UserBadge & { badge: Badge })[]> {
-    const completedBadges = await db
+    const selectQuery = db
       .select()
-      .from(userBadges)
+      .from(userBadges);
+    
+    const completedBadges = await selectQuery
       .where(eq(userBadges.userId, userId))
       .where(eq(userBadges.completado, true))
       .orderBy(desc(userBadges.fechaObtencion))
