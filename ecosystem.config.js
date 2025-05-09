@@ -1,8 +1,7 @@
 module.exports = {
   apps: [{
     name: 'presupuestos-app',
-    script: 'node_modules/tsx/dist/cli.mjs',
-    args: 'server/index.ts',
+    script: 'dist/server/index.js',
     instances: 1,
     autorestart: true,
     watch: false,
