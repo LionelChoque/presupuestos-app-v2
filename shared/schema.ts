@@ -19,7 +19,7 @@ export const users = pgTable("users", {
 // Tabla para registrar actividades de los usuarios
 export const userActivities = pgTable("user_activities", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").references(() => users.id), // Eliminado notNull() para permitir que sea null
   tipo: text("tipo").notNull(), // login, budget_update, budget_create, etc.
   descripcion: text("descripcion").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),

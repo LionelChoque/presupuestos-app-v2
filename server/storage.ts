@@ -125,20 +125,30 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteUser(id: number): Promise<boolean> {
-    // Primero debemos eliminar los registros relacionados al usuario
-    
-    // Eliminar las insignias del usuario
-    await db
-      .delete(userBadges)
-      .where(eq(userBadges.userId, id));
-    
-    // Eliminar al usuario
-    const [deletedUser] = await db
-      .delete(users)
-      .where(eq(users.id, id))
-      .returning();
+    try {
+      // Primero debemos eliminar los registros relacionados al usuario
       
-    return !!deletedUser;
+      // Eliminar las actividades del usuario (o actualizar el userId con SQL directo)
+      await db.execute(
+        sql`UPDATE user_activities SET user_id = NULL WHERE user_id = ${id}`
+      );
+      
+      // Eliminar las insignias del usuario
+      await db
+        .delete(userBadges)
+        .where(eq(userBadges.userId, id));
+      
+      // Eliminar al usuario
+      const [deletedUser] = await db
+        .delete(users)
+        .where(eq(users.id, id))
+        .returning();
+        
+      return !!deletedUser;
+    } catch (error) {
+      console.error('Error en deleteUser:', error);
+      throw error;
+    }
   }
   
   async getAllUsers(): Promise<User[]> {
@@ -171,13 +181,21 @@ export class DatabaseStorage implements IStorage {
     const result: (UserActivity & { username: string })[] = [];
     
     for (const activity of activities) {
-      // Obtener usuario
-      const [user] = await db.select().from(users).where(eq(users.id, activity.userId));
-      
-      result.push({
-        ...activity,
-        username: user?.username || 'Usuario eliminado'
-      });
+      // Si la actividad no tiene userId, es un usuario eliminado
+      if (activity.userId === null) {
+        result.push({
+          ...activity,
+          username: 'Usuario eliminado'
+        });
+      } else {
+        // Obtener usuario
+        const [user] = await db.select().from(users).where(eq(users.id, activity.userId));
+        
+        result.push({
+          ...activity,
+          username: user?.username || 'Usuario eliminado'
+        });
+      }
     }
     
     return result;
@@ -222,25 +240,41 @@ export class DatabaseStorage implements IStorage {
     .limit(10);
     
     // Obtener nombres de usuario
-    const userIdsList = activitiesData.map(a => a.userId);
+    const userIdsList = activitiesData
+      .filter(a => a.userId !== null) // Filtrar actividades sin userId
+      .map(a => a.userId);
+    
     let usersData: User[] = [];
     
     if (userIdsList.length > 0) {
       for (const userId of userIdsList) {
-        const userResult = await db.select().from(users).where(eq(users.id, userId));
-        if (userResult.length > 0) {
-          usersData.push(userResult[0]);
+        if (userId !== null) { // Verificar por si acaso
+          const userResult = await db.select().from(users).where(eq(users.id, userId));
+          if (userResult.length > 0) {
+            usersData.push(userResult[0]);
+          }
         }
       }
     }
     
     const usersMap = Object.fromEntries(usersData.map(u => [u.id, u.username]));
     
-    const userActivityStats = activitiesData.map(a => ({
-      userId: a.userId,
-      username: usersMap[a.userId] || 'Usuario eliminado',
-      count: Number(a.count)
-    }));
+    const userActivityStats = activitiesData.map(a => {
+      // Para usuarios eliminados (userId es null)
+      if (a.userId === null) {
+        return {
+          userId: 0, // Usar 0 como ID para usuario eliminado
+          username: 'Usuario eliminado',
+          count: Number(a.count)
+        };
+      }
+      
+      return {
+        userId: a.userId,
+        username: usersMap[a.userId] || 'Usuario eliminado',
+        count: Number(a.count)
+      };
+    });
     
     // Actividades recientes
     const recentActivitiesRaw = await this.getUserActivities(10, 0);
