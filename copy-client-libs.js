@@ -1,5 +1,11 @@
-const fs = require('fs');
-const path = require('path');
+// ESM compatible version of copy-client-libs.js
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent to __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Crear directorios necesarios
 const targetDir = path.join(__dirname, 'dist', 'client', 'src', 'lib');
