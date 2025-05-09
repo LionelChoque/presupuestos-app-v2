@@ -1071,7 +1071,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
         descripcion: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
         tipoObjetivo: z.string(),
-        valorObjetivo: z.number().positive('El valor objetivo debe ser positivo'),
+        valorObjetivo: z.string(), // Valor objetivo como string para mantener consistencia con el schema
         icono: z.string(),
         color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Color debe ser un valor hexadecimal válido'),
         publico: z.boolean().optional().default(false)
@@ -1119,7 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nombre: z.string().min(3).optional(),
         descripcion: z.string().min(10).optional(),
         tipoObjetivo: z.string().optional(),
-        valorObjetivo: z.number().positive().optional(),
+        valorObjetivo: z.string().optional(),
         icono: z.string().optional(),
         color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/).optional(),
         activo: z.boolean().optional(),
