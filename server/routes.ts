@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { setupAuth, isAuthenticated, isAdmin, logUserActivity, hashPassword } from './auth';
+import { setupAuth, isAuthenticated, isAdmin, logUserActivity, hashPassword, comparePasswords } from './auth';
 import * as XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 
@@ -1518,6 +1518,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error al obtener insignias recientes:', error);
       res.status(500).json({ message: 'Error al obtener insignias recientes' });
+    }
+  });
+
+  // Actualizar perfil de usuario
+  app.patch('/api/users/:userId/profile', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Solo el propio usuario o un administrador pueden actualizar el perfil
+      if (req.user!.id !== userId && req.user!.rol !== 'admin') {
+        return res.status(403).json({ message: 'No tienes permiso para actualizar este perfil' });
+      }
+      
+      const { nombre, apellido, email } = req.body;
+      
+      const updatedUser = await storage.updateUser(userId, {
+        nombre,
+        apellido,
+        email
+      });
+      
+      // Registrar la actividad
+      await logUserActivity(req.user!.id, 'profile_update', 'Actualización de perfil');
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error al actualizar perfil de usuario:', error);
+      res.status(500).json({ message: 'Error al actualizar perfil' });
+    }
+  });
+  
+  // Cambiar contraseña
+  app.post('/api/users/:userId/change-password', isAuthenticated, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'ID de usuario inválido' });
+      }
+      
+      // Solo el propio usuario puede cambiar su contraseña (no los administradores)
+      if (req.user!.id !== userId) {
+        return res.status(403).json({ message: 'No tienes permiso para cambiar esta contraseña' });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Faltan datos requeridos' });
+      }
+      
+      // Obtener el usuario actual para verificar la contraseña
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'Usuario no encontrado' });
+      }
+      
+      // Ya tenemos comparePasswords importado en la parte superior del archivo
+      // Verificar la contraseña actual
+      const passwordMatches = await comparePasswords(currentPassword, user.password);
+      
+      if (!passwordMatches) {
+        return res.status(400).json({ message: 'La contraseña actual es incorrecta' });
+      }
+      
+      // Actualizar la contraseña
+      await storage.updateUser(userId, {
+        password: await hashPassword(newPassword)
+      });
+      
+      // Registrar la actividad
+      await logUserActivity(req.user!.id, 'password_change', 'Cambio de contraseña');
+      
+      res.json({ message: 'Contraseña actualizada correctamente' });
+    } catch (error) {
+      console.error('Error al cambiar contraseña:', error);
+      res.status(500).json({ message: 'Error al cambiar contraseña' });
     }
   });
 
