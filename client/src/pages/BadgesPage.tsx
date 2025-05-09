@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProgressBar } from "@/components/ProgressBar";
+import { ProgressBar } from "../components/ProgressBar";
 import { Award, Trophy, Star, Zap, Crown, Plus, Settings, Trash, Check, PlusCircle, Edit } from "lucide-react";
 import { Layout } from "@/components/Layout";
 
@@ -333,7 +333,7 @@ export default function BadgesPage() {
       toast({
         title: 'Insignia creada',
         description: 'La insignia se ha creado correctamente.',
-        variant: 'success'
+        variant: 'default'
       });
       setIsCreatingBadge(false);
     },
@@ -356,7 +356,7 @@ export default function BadgesPage() {
       toast({
         title: 'Insignia actualizada',
         description: 'La insignia se ha actualizado correctamente.',
-        variant: 'success'
+        variant: 'default'
       });
       setEditingBadge(undefined);
     },
@@ -378,7 +378,7 @@ export default function BadgesPage() {
       toast({
         title: 'Insignia eliminada',
         description: 'La insignia se ha eliminado correctamente.',
-        variant: 'success'
+        variant: 'default'
       });
     },
     onError: (error: Error) => {
@@ -400,7 +400,7 @@ export default function BadgesPage() {
       toast({
         title: 'Insignia asignada',
         description: 'La insignia ha sido asignada correctamente.',
-        variant: 'success'
+        variant: 'default'
       });
     },
     onError: (error: Error) => {
@@ -422,7 +422,7 @@ export default function BadgesPage() {
       toast({
         title: 'Progreso actualizado',
         description: 'El progreso de la insignia ha sido actualizado.',
-        variant: 'success'
+        variant: 'default'
       });
     },
     onError: (error: Error) => {
@@ -460,13 +460,13 @@ export default function BadgesPage() {
   };
   
   // Filtrar insignias para la pestaña actual
-  const filteredBadges = allBadges?.filter(badge => {
+  const filteredBadges = Array.isArray(allBadges) ? allBadges.filter(badge => {
     if (activeTab === 'todas-insignias') {
       return true;
     }
     // Para la pestaña "disponibles", mostrar insignias públicas no asignadas al usuario
-    return badge.publico && !userBadges?.some(ub => ub.badge.id === badge.id);
-  });
+    return badge.publico && !Array.isArray(userBadges) ? true : !userBadges.some(ub => ub.badge.id === badge.id);
+  }) : [];
   
   // Verificar si el usuario es administrador
   const isAdmin = user?.rol === 'admin';
