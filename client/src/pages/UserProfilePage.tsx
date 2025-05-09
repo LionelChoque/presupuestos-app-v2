@@ -36,6 +36,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, User as UserIcon, Mail, Key, Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AuthUser } from '@/hooks/use-auth';
 
 // Definir esquemas para la validación de formularios
 const profileFormSchema = z.object({
@@ -168,11 +169,18 @@ export default function UserProfilePage() {
   );
 }
 
+// Tipos para el formulario de perfil
+type ProfileFormValues = {
+  nombre: string;
+  apellido: string;
+  email: string;
+};
+
 // Componente para editar la información de perfil
-function ProfileForm({ user }) {
+function ProfileForm({ user }: { user: AuthUser }) {
   const { toast } = useToast();
   
-  const form = useForm({
+  const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       nombre: user.nombre || '',
@@ -182,7 +190,7 @@ function ProfileForm({ user }) {
   });
   
   const updateProfileMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (data: ProfileFormValues) => {
       const res = await apiRequest('PATCH', `/api/users/${user.id}/profile`, data);
       return await res.json();
     },
@@ -193,7 +201,7 @@ function ProfileForm({ user }) {
         description: 'Tu información ha sido actualizada correctamente.',
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error al actualizar',
         description: error.message || 'Ha ocurrido un error al actualizar tu perfil.',
@@ -202,7 +210,7 @@ function ProfileForm({ user }) {
     }
   });
   
-  const onSubmit = (data) => {
+  const onSubmit = (data: ProfileFormValues) => {
     updateProfileMutation.mutate(data);
   };
   
