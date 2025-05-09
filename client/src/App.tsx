@@ -23,6 +23,7 @@ import AuthPage from '@/pages/auth-page';
 import UsersAdmin from '@/pages/UsersAdmin';
 import UserPerformance from '@/pages/UserPerformance';
 import ActivityLog from '@/pages/ActivityLog';
+import UserProfilePage from '@/pages/UserProfilePage';
 import ProtectedRoute from '@/lib/protected-route';
 
 function App() {
@@ -132,6 +133,14 @@ function App() {
             component={() => (
               <ProtectedRoute>
                 <BadgesPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route 
+            path="/profile" 
+            component={() => (
+              <ProtectedRoute>
+                <UserProfilePage />
               </ProtectedRoute>
             )}
           />
