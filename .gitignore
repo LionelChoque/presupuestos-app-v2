@@ -1,6 +1,31 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
+# Node.js
+node_modules/
+dist/
 *.tar.gz
+
+# Configuración sensible
+.env
+
+# MacOS
+.DS_Store
+
+# Replit
+.replit
+.replit/  # por si hubiera una carpeta
+.replit_agent/
+
+# Salida de compilaciones
+server/public/
+production/
+attached_assets/
+generated-icon.png
+
+# TypeScript outputs
+*.js.map
+*.tsbuildinfo
+
+# Otros
+*.log
+*.sqlite
+*.sqlite3
+migrations/
