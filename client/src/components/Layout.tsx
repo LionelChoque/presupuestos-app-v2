@@ -12,6 +12,7 @@ import {
   User,
   X,
   Activity,
+  Award,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -55,6 +56,11 @@ export function Layout({ children, onImport }: LayoutProps) {
       id: '/reports',
       label: 'Reportes',
       icon: <CalendarClock className="h-5 w-5" />,
+    },
+    {
+      id: '/badges',
+      label: 'Insignias',
+      icon: <Award className="h-5 w-5" />,
     },
   ];
 
