@@ -10,10 +10,12 @@ import { BudgetDetailsModal } from '@/components/BudgetDetailsModal';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { ContextualHelp } from '@/components/ContextualHelp';
 import { WelcomeMessage } from '@/components/WelcomeMessage';
+import { BadgeNotifications } from '@/components/BadgeNotifications';
 import Dashboard from '@/pages/Dashboard';
 import BudgetList from '@/pages/BudgetList';
 import TaskList from '@/pages/TaskList';
 import Reports from '@/pages/Reports';
+import BadgesPage from '@/pages/BadgesPage';
 import NotFound from "@/pages/not-found";
 import { useBudgets } from '@/hooks/useBudgets';
 import { AuthProvider } from '@/hooks/use-auth';
@@ -125,6 +127,14 @@ function App() {
               </ProtectedRoute>
             )}
           />
+          <Route 
+            path="/badges" 
+            component={() => (
+              <ProtectedRoute>
+                <BadgesPage />
+              </ProtectedRoute>
+            )}
+          />
           <Route path="/auth" component={AuthPage} />
           <Route component={NotFound} />
         </Switch>
@@ -159,6 +169,9 @@ function App() {
 
       {/* Mensaje de bienvenida para usuarios recién aprobados */}
       <WelcomeMessage />
+      
+      {/* Notificaciones de insignias */}
+      <BadgeNotifications />
       
       <Toaster />
     </TooltipProvider>
