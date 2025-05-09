@@ -281,11 +281,23 @@ function ProfileForm({ user }: { user: AuthUser }) {
   );
 }
 
+// Tipos para el formulario de contraseña
+type PasswordFormValues = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+type PasswordChangeRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 // Componente para cambiar contraseña
-function PasswordForm({ user }) {
+function PasswordForm({ user }: { user: AuthUser }) {
   const { toast } = useToast();
   
-  const form = useForm({
+  const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
       currentPassword: '',
@@ -294,8 +306,8 @@ function PasswordForm({ user }) {
     }
   });
   
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data) => {
+  const changePasswordMutation = useMutation<unknown, Error, PasswordChangeRequest>({
+    mutationFn: async (data: PasswordChangeRequest) => {
       const res = await apiRequest('POST', `/api/users/${user.id}/change-password`, data);
       return await res.json();
     },
@@ -306,7 +318,7 @@ function PasswordForm({ user }) {
         description: 'Tu contraseña ha sido cambiada correctamente.',
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error al cambiar contraseña',
         description: error.message || 'La contraseña actual es incorrecta o ha ocurrido un error.',
@@ -315,7 +327,7 @@ function PasswordForm({ user }) {
     }
   });
   
-  const onSubmit = (data) => {
+  const onSubmit = (data: PasswordFormValues) => {
     changePasswordMutation.mutate({
       currentPassword: data.currentPassword,
       newPassword: data.newPassword
