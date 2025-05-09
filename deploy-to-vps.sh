@@ -32,13 +32,51 @@ ssh ${USER}@${SERVER} "mkdir -p ${DEST_PATH}"
 echo "=== Transfiriendo archivos al servidor ==="
 rsync -avz --progress dist/ ${USER}@${SERVER}:${DEST_PATH}/
 
-# Ejecutar script de instalación en el servidor
-echo "=== Configurando la aplicación en el servidor ==="
-ssh ${USER}@${SERVER} "cd ${DEST_PATH} && sudo ./install.sh"
+# Preguntar si desea detener la aplicación actual
+echo "=== ¿Desea detener la aplicación actual si está en ejecución? (s/n) ==="
+read STOP_APP
+if [ "$STOP_APP" = "s" ]; then
+    ssh ${USER}@${SERVER} "cd ${DEST_PATH} && pm2 stop presupuestos-app || true"
+fi
+
+# Instalar dependencias
+echo "=== Instalando dependencias en el servidor ==="
+ssh ${USER}@${SERVER} "cd ${DEST_PATH} && npm install --omit=dev"
+
+# Preguntar si desea configurar la base de datos
+echo "=== ¿Desea configurar la base de datos? (s/n) ==="
+read SETUP_DB
+if [ "$SETUP_DB" = "s" ]; then
+    ssh ${USER}@${SERVER} "cd ${DEST_PATH} && sudo -u postgres psql -f db-setup.sql"
+fi
+
+# Preguntar si desea configurar Nginx
+echo "=== ¿Desea configurar Nginx? (s/n) ==="
+read SETUP_NGINX
+if [ "$SETUP_NGINX" = "s" ]; then
+    ssh ${USER}@${SERVER} "cd ${DEST_PATH} && sudo cp nginx/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-available/ && sudo ln -sf /etc/nginx/sites-available/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl restart nginx"
+fi
+
+# Preguntar si desea ejecutar migraciones de base de datos
+echo "=== ¿Desea ejecutar migraciones de base de datos? (s/n) ==="
+read RUN_MIGRATIONS
+if [ "$RUN_MIGRATIONS" = "s" ]; then
+    ssh ${USER}@${SERVER} "cd ${DEST_PATH} && ./migrate.sh"
+fi
+
+# Preguntar si desea iniciar la aplicación
+echo "=== ¿Desea iniciar la aplicación con PM2? (s/n) ==="
+read START_APP
+if [ "$START_APP" = "s" ]; then
+    ssh ${USER}@${SERVER} "cd ${DEST_PATH} && pm2 start ecosystem.config.cjs"
+fi
 
 # Mensaje final
 echo "=== Despliegue completado ==="
-echo "IMPORTANTE: Recuerde modificar la contraseña de la base de datos en ecosystem.config.js"
-echo "y luego iniciar la aplicación con: pm2 start ecosystem.config.js"
+echo "Para acceder a la aplicación, visite: https://presupuestos.bairesanalitica.com"
 echo ""
-echo "Para acceder a la aplicación, visite: http://presupuestos.bairesanalitica.com"
+echo "Para verificar el estado de la aplicación, ejecute:"
+echo "ssh ${USER}@${SERVER} 'cd ${DEST_PATH} && pm2 status'"
+echo ""
+echo "Para ver los logs de la aplicación, ejecute:"
+echo "ssh ${USER}@${SERVER} 'cd ${DEST_PATH} && pm2 logs presupuestos-app'"

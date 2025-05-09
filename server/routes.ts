@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { z } from 'zod';
-import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
+import { insertContactInfoSchema, insertBudgetSchema } from '../shared/schema.js';
+//import { insertContactInfoSchema, insertBudgetSchema } from '@shared/schema';
 import { readFileSync } from 'fs';
 import path from 'path';
-import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth';
+import { setupAuth, isAuthenticated, isAdmin, logUserActivity } from './auth.js';
 import * as XLSX from 'xlsx';
 import PDFDocument from 'pdfkit';
 

@@ -20,9 +20,10 @@ import {
   users,
   userActivities,
   reports
-} from "@shared/schema";
-import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser";
-import { db } from "./db";
+} from "../shared/schema.js";
+//from "@shared/schema";
+import { convertCsvToBudgets, compareBudgets } from "../client/src/lib/csvParser.js";
+import { db } from "./db.js";
 import { eq, desc, sql, inArray } from "drizzle-orm";
 
 // Interface for storage operations
