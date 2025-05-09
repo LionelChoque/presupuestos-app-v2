@@ -38,6 +38,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<Omit<InsertUser, 'id'>>): Promise<User>;
+  deleteUser(id: number): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>;
   
@@ -121,6 +122,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    // Primero debemos eliminar los registros relacionados al usuario
+    
+    // Eliminar las insignias del usuario
+    await db
+      .delete(userBadges)
+      .where(eq(userBadges.userId, id));
+    
+    // Eliminar al usuario
+    const [deletedUser] = await db
+      .delete(users)
+      .where(eq(users.id, id))
+      .returning();
+      
+    return !!deletedUser;
   }
   
   async getAllUsers(): Promise<User[]> {
