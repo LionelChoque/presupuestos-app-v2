@@ -136,9 +136,11 @@ export function Layout({ children, onImport }: LayoutProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Mi perfil</span>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Mi perfil</span>
+                    </Link>
                   </DropdownMenuItem>
                   {user.rol === 'admin' && (
                     <>
