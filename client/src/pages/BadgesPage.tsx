@@ -12,6 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar } from "../components/ProgressBar";
 import { Award, Trophy, Star, Zap, Crown, Plus, Settings, Trash, Check, PlusCircle, Edit } from "lucide-react";
 import { Layout } from "@/components/Layout";
@@ -215,20 +219,21 @@ const BadgeForm = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="tipoObjetivo">Tipo de Objetivo</Label>
-            <select
-              id="tipoObjetivo"
-              name="tipoObjetivo"
-              value={formData.tipoObjetivo}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
+            <Select 
+              value={formData.tipoObjetivo} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, tipoObjetivo: value }))}
             >
-              <option value="monto_total">Monto Total</option>
-              <option value="cantidad_presupuestos">Cantidad Presupuestos</option>
-              <option value="dias_aprobacion">Días para Aprobación</option>
-              <option value="cliente_fidelizado">Cliente Fidelizado</option>
-              <option value="categoria_top">Top en Categoría</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monto_total">Monto Total</SelectItem>
+                <SelectItem value="cantidad_presupuestos">Cantidad Presupuestos</SelectItem>
+                <SelectItem value="dias_aprobacion">Días para Aprobación</SelectItem>
+                <SelectItem value="cliente_fidelizado">Cliente Fidelizado</SelectItem>
+                <SelectItem value="categoria_top">Top en Categoría</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -248,20 +253,21 @@ const BadgeForm = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="icono">Icono</Label>
-            <select
-              id="icono"
-              name="icono"
-              value={formData.icono}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
+            <Select 
+              value={formData.icono} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, icono: value }))}
             >
-              <option value="award">Premio</option>
-              <option value="trophy">Trofeo</option>
-              <option value="star">Estrella</option>
-              <option value="zap">Rayo</option>
-              <option value="crown">Corona</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un icono" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="award">Premio</SelectItem>
+                <SelectItem value="trophy">Trofeo</SelectItem>
+                <SelectItem value="star">Estrella</SelectItem>
+                <SelectItem value="zap">Rayo</SelectItem>
+                <SelectItem value="crown">Corona</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -278,15 +284,12 @@ const BadgeForm = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          <input
+          <Switch
             id="publico"
-            name="publico"
-            type="checkbox"
             checked={formData.publico}
-            onChange={handleChange}
-            className="rounded border-gray-300"
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, publico: checked }))}
           />
-          <Label htmlFor="publico">Disponible para todos los usuarios</Label>
+          <Label htmlFor="publico" className="ml-2">Disponible para todos los usuarios</Label>
         </div>
       </div>
       
@@ -312,12 +315,12 @@ export default function BadgesPage() {
   const [editingBadge, setEditingBadge] = useState<Badge | undefined>(undefined);
   
   // Consultas para obtener datos
-  const { data: allBadges, isLoading: isLoadingAllBadges } = useQuery({
+  const { data: allBadges, isLoading: isLoadingAllBadges } = useQuery<Badge[]>({
     queryKey: ['/api/badges'],
     enabled: !!user
   });
   
-  const { data: userBadges, isLoading: isLoadingUserBadges } = useQuery({
+  const { data: userBadges, isLoading: isLoadingUserBadges } = useQuery<(UserBadge & { badge: Badge })[]>({
     queryKey: ['/api/users', user?.id, 'badges'],
     enabled: !!user?.id
   });
@@ -465,7 +468,7 @@ export default function BadgesPage() {
       return true;
     }
     // Para la pestaña "disponibles", mostrar insignias públicas no asignadas al usuario
-    return badge.publico && !Array.isArray(userBadges) ? true : !userBadges.some(ub => ub.badge.id === badge.id);
+    return badge.publico && (!Array.isArray(userBadges) || !userBadges.length ? true : !userBadges.some((ub) => ub.badge.id === badge.id));
   }) : [];
   
   // Verificar si el usuario es administrador

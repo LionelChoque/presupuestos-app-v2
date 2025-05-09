@@ -8,24 +8,25 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ value, color = '#4CAF50', label, className }: ProgressBarProps) {
-  // Asegurarse de que el valor esté entre 0 y 100
-  const normalizedValue = Math.max(0, Math.min(100, value));
+  // Asegurar que el valor esté entre 0 y 100
+  const clampedValue = Math.max(0, Math.min(100, value));
   
   return (
-    <div className={`w-full ${className}`}>
-      <div className="flex justify-between mb-1">
-        {label && <span className="text-xs font-medium text-gray-700">{label}</span>}
-        <span className="text-xs font-medium text-gray-700">{normalizedValue.toFixed(0)}%</span>
-      </div>
+    <div className={`w-full ${className || ''}`}>
       <div className="w-full bg-gray-200 rounded-full h-2.5">
         <div 
-          className="h-2.5 rounded-full transition-all duration-300 ease-in-out"
+          className="h-2.5 rounded-full transition-all duration-500 ease-out"
           style={{ 
-            width: `${normalizedValue}%`, 
+            width: `${clampedValue}%`, 
             backgroundColor: color 
           }}
-        ></div>
+        />
       </div>
+      {label && (
+        <div className="mt-1 text-xs text-center font-medium" style={{ color }}>
+          {label}
+        </div>
+      )}
     </div>
   );
 }
