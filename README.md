@@ -1,190 +1,103 @@
 # Sistema de Seguimiento de Presupuestos
 
-Aplicación de seguimiento y gestión de presupuestos con análisis de datos.
+Este proyecto proporciona una plataforma para el seguimiento, análisis y gestión de presupuestos comerciales.
 
-## Guía de Despliegue en VPS
+## Características principales
 
-### 1. Preparación Inicial
+- Importación de datos de presupuestos desde archivos CSV
+- Seguimiento del estado de los presupuestos
+- Visualización de datos mediante gráficos y reportes
+- Gestión de tareas de seguimiento
+- Almacenamiento de información de contacto para cada presupuesto
+- Sistema de autenticación y autorización de usuarios
+- Indicadores de desempeño para usuarios
+- Sistema de insignias por logros
+- Seguimiento histórico de estados de presupuestos
+- Generación y exportación de reportes en múltiples formatos
+- Menú lateral colapsable para mayor espacio en pantalla
 
-#### 1.1 Requisitos del Sistema
-- Node.js (v14 o superior)
-- PostgreSQL (v12 o superior)
-- Nginx
-- PM2
+## Tecnologías utilizadas
 
-#### 1.2 Estructura de Directorios en el VPS
-```
-/home/baires/
-└── apps/
-    └── presupuestos/
-        ├── client/
-        ├── server/
-        ├── shared/
-        ├── package.json
-        ├── ecosystem.config.js
-        └── otros archivos de configuración...
-```
+- **Frontend**: React con TypeScript, Tailwind CSS, Shadcn UI
+- **Backend**: Express.js con TypeScript
+- **Base de datos**: PostgreSQL con Drizzle ORM
+- **Autenticación**: Passport.js
+- **Gráficos**: Recharts, Chart.js
+- **Exportación**: PDFKit, XLSX
+- **Módulos**: ESM (ECMAScript Modules)
 
-### 2. Configuración del Servidor
+## Requisitos previos
 
-#### 2.1 Configuración de la Base de Datos
-1. Accede al servidor a través de SSH:
-   ```
-   ssh baires@168.231.99.16
-   ```
+- Node.js (versión 18+)
+- PostgreSQL (versión 14+)
 
-2. Ejecuta el script de configuración de la base de datos:
-   ```
-   cd /home/baires/apps/presupuestos
-   sudo -u postgres psql -f db-setup.sql
-   ```
+## Instalación y configuración
 
-3. **IMPORTANTE**: Después de ejecutar el script, modifica la contraseña por defecto:
+1. Clona este repositorio
+2. Instala las dependencias:
    ```
-   sudo -u postgres psql -c "ALTER USER presupuestos_user WITH PASSWORD 'tu_contraseña_segura';"
+   npm install
    ```
-
-4. Actualiza la configuración en ecosystem.config.js con la nueva contraseña:
+3. Configura las variables de entorno en un archivo `.env`:
    ```
-   nano ecosystem.config.js
+   DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/nombre_db
+   PORT=5000
+   SESSION_SECRET=un_valor_secreto_seguro_y_complejo
    ```
-   
-   Modifica la línea DATABASE_URL con tu contraseña:
+4. Inicializa la base de datos:
    ```
-   DATABASE_URL: 'postgresql://presupuestos_user:tu_contraseña_segura@localhost:5432/presupuestos_db'
+   npm run db:push
    ```
-
-#### 2.2 Configuración de Nginx
-1. Copia el archivo de configuración de Nginx a la ubicación correcta:
+5. Inicia la aplicación en modo desarrollo:
    ```
-   sudo cp nginx/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-available/
-   sudo ln -sf /etc/nginx/sites-available/presupuestos.bairesanalitica.com.conf /etc/nginx/sites-enabled/
+   npm run dev
    ```
 
-2. Verifica la configuración y reinicia Nginx:
-   ```
-   sudo nginx -t
-   sudo systemctl restart nginx
-   ```
+## Despliegue en producción
 
-3. Configura el DNS de tu dominio para que apunte a la IP del servidor (168.231.99.16).
+### Preparación
 
-4. (Opcional) Configura SSL con Certbot:
-   ```
-   sudo apt install certbot python3-certbot-nginx -y
-   sudo certbot --nginx -d presupuestos.bairesanalitica.com
-   ```
-   
-   Sigue las instrucciones en pantalla para completar la configuración SSL.
-
-### 3. Despliegue de la Aplicación
-
-#### 3.1 Construir la Aplicación para Producción
-1. En tu entorno de desarrollo, ejecuta el script de construcción:
+1. Construye la aplicación para producción:
    ```
    ./build.sh
    ```
 
-2. Transfiere los archivos al servidor:
+2. Inicia la aplicación en producción:
    ```
-   scp -r dist/* baires@168.231.99.16:/home/baires/apps/presupuestos/
-   ```
-
-#### 3.2 Instalar Dependencias y Migrar Base de Datos
-1. En el servidor:
-   ```
-   cd /home/baires/apps/presupuestos
-   npm install --production
+   NODE_ENV=production node --experimental-specifier-resolution=node dist/index.js
    ```
 
-2. Ejecuta las migraciones de la base de datos:
-   ```
-   ./migrate.sh
-   ```
+### Configuración con PM2
 
-#### 3.3 Iniciar la Aplicación con PM2
-1. Inicia la aplicación:
-   ```
-   pm2 start ecosystem.config.js
-   ```
+Para ejecutar la aplicación con PM2, puedes usar un archivo de configuración como este:
 
-2. Configura PM2 para que inicie automáticamente tras reiniciar el servidor:
-   ```
-   pm2 startup
-   pm2 save
-   ```
-
-#### 3.4 Importación Inicial de Datos
-1. Copia el archivo CSV con los presupuestos a importar:
-   ```
-   cp attached_assets/PRESUPUESTOS_CON_ITEMS.csv .
-   ```
-
-2. Ejecuta el script de importación:
-   ```
-   ./import-data.sh PRESUPUESTOS_CON_ITEMS.csv
-   ```
-   
-   Este proceso puede tardar varios minutos dependiendo del tamaño del archivo.
-
-### 4. Mantenimiento y Backup
-
-#### 4.1 Respaldo de la Base de Datos
-Para crear un respaldo de la base de datos:
-```
-pg_dump -U presupuestos_user -d presupuestos_db -F c -f backup_presupuestos_$(date +%Y%m%d).dump
+```javascript
+export default {
+  apps: [{
+    name: 'presupuestos-app',
+    script: 'dist/index.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 5000,
+      DATABASE_URL: 'postgresql://usuario:contraseña@localhost:5432/nombre_db',
+      SESSION_SECRET: 'un_valor_secreto_seguro_y_complejo'
+    },
+    node_args: '--experimental-specifier-resolution=node'
+  }]
+};
 ```
 
-#### 4.2 Restauración de Backup
-Para restaurar un backup:
-```
-pg_restore -U presupuestos_user -d presupuestos_db -c backup_presupuestos_YYYYMMDD.dump
-```
+## Estructura del proyecto
 
-#### 4.3 Logs y Monitoreo
-- Verificar logs de la aplicación:
-  ```
-  pm2 logs presupuestos-app
-  ```
+- `/client`: Código del frontend
+- `/server`: Código del backend
+- `/shared`: Tipos y utilidades compartidas
+- `/nginx`: Configuración del servidor web
 
-- Monitorear el estado de la aplicación:
-  ```
-  pm2 monit
-  ```
+## Licencia
 
-#### 4.4 Actualización de la Aplicación
-1. Construye la nueva versión.
-2. Transfiere los archivos al servidor.
-3. Reinicia la aplicación:
-   ```
-   pm2 restart presupuestos-app
-   ```
-
-## Solución de Problemas Comunes
-
-### Problema: La aplicación no arranca
-Verifica los logs:
-```
-pm2 logs presupuestos-app
-```
-
-### Problema: Error de conexión a la base de datos
-Verifica que la base de datos esté funcionando:
-```
-sudo systemctl status postgresql
-```
-
-Comprueba las credenciales en ecosystem.config.js.
-
-### Problema: La aplicación no es accesible desde el navegador
-1. Verifica que Nginx esté funcionando:
-   ```
-   sudo systemctl status nginx
-   ```
-
-2. Comprueba los logs de Nginx:
-   ```
-   sudo tail -f /var/log/nginx/error.log
-   ```
-
-3. Asegúrate de que los puertos necesarios estén abiertos en el firewall.
+MIT
